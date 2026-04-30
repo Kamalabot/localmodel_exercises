@@ -1,26 +1,61 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Mock Tech News</title>
-</head>
-<body>
-    <h1>Latest Tech Headlines</h1>
-    <div class="news-item">
-        <h2 class="title">Local Models Outperform Cloud in Privacy</h2>
-        <span class="timestamp">2026-04-30 10:00 AM</span>
-        <p>New benchmarks show that local inference is becoming the standard for enterprise security.</p>
-    </div>
-    <div class="news-item">
-        <h2 class="title">GSAP 4.0 Announced with Native 3D</h2>
-        <span class="timestamp">2026-04-29 02:30 PM</span>
-        <p>GreenSock continues to dominate the web animation space with its latest release.</p>
-    </div>
-    <div class="news-item">
-        <h2 class="title">Python 3.14 Released</h2>
-        <span class="timestamp">2026-04-28 09:15 AM</span>
-        <p>The new version introduces performance boosts for automation scripts.</p>
-    </div>
-    <button id="load-more">Load More</button>
-</body>
-</html>
+
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>Tech-Corp Executive Portal</title>
+        <style>
+            :root { --primary: #1a237e; --secondary: #3949ab; --bg: #f8f9fa; }
+            body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 900px; margin: 0 auto; padding: 40px; background: var(--bg); color: #333; }
+            header { border-bottom: 3px solid var(--primary); margin-bottom: 40px; padding-bottom: 20px; }
+            h1 { color: var(--primary); font-size: 2.5em; margin: 0; }
+            .news-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+            .news-card { background: white; border-radius: 4px; padding: 25px; border-left: 5px solid var(--secondary); box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+            .news-card.featured { grid-column: span 2; border-left-color: #f44336; }
+            .headline { color: var(--primary); margin-top: 0; font-size: 1.4em; }
+            .meta { color: #888; font-size: 0.85em; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 1px; }
+            .content { line-height: 1.7; color: #555; }
+            .tag-row { margin-top: 15px; }
+            .tag { background: #eee; color: #666; padding: 4px 12px; border-radius: 20px; font-size: 0.75em; font-weight: bold; margin-right: 5px; }
+        </style>
+    </head>
+    <body>
+        <header>
+            <h1>Tech-Corp Global Intelligence</h1>
+            <p>Proprietary Executive Briefing Feed</p>
+        </header>
+        
+        <div class="news-grid">
+            <article class="news-card featured">
+                <span class="meta">URGENT | 2026-04-30 08:00 AM</span>
+                <h2 class="headline">Strategic Acquisition: Neural-Link Dynamics Finalized</h2>
+                <div class="content">
+                    Tech-Corp has successfully completed the acquisition of Neural-Link Dynamics, 
+                    effectively doubling our local model inference capacity.
+                </div>
+                <div class="tag-row"><span class="tag">M&A</span><span class="tag">STRATEGY</span></div>
+            </article>
+
+            <article class="news-card">
+                <span class="meta">2026-04-30 10:00 AM</span>
+                <h2 class="headline">AI Models Reach Parity</h2>
+                <div class="content">
+                    Internal benchmarks show our L2.5 framework has reached human-level reasoning 
+                    capabilities for document classification.
+                </div>
+                <div class="tag-row"><span class="tag">AI</span><span class="tag">TECH</span></div>
+            </article>
+
+            <article class="news-card">
+                <span class="meta">2026-04-30 03:45 PM</span>
+                <h2 class="headline">Global PDF Standards Update</h2>
+                <div class="content">
+                    New ISO standards for PDF/A-4 have been released. Tech-Corp tools are already 
+                    compliant.
+                </div>
+                <div class="tag-row"><span class="tag">COMPLIANCE</span><span class="tag">PDF</span></div>
+            </article>
+        </div>
+    </body>
+    </html>
+    
