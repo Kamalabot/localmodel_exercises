@@ -18,6 +18,13 @@ Welcome to the local model training exercises. These exercises are designed to h
 
 ---
 
+### 2.5 [Level 2.5: Intermediate Automation (PDFs & Web Scraping)](./L2.5_Intermediate_Exercises.md)
+*   **Focus:** Document data extraction (PDFs), Web Scraping basics, and Browser Automation.
+*   **Tools:** PyPDF2, BeautifulSoup, Playwright.
+*   **Key Files:** Located in `exercise_data/L2.5_data`.
+
+---
+
 ### 3. [Level 3: Master Level - Integration & Visualization](./Master_Exercises.md)
 *   **Focus:** API integration, Local Databases (SQLite), and Motion Graphics (GSAP).
 *   **Tools:** SQLite, GSAP, Vite/HTML/CSS, Python Scripts.
