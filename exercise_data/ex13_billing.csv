@@ -1,0 +1,11 @@
+Customer Name,Amount Due,Due Date,Account Status
+John Wick,$1,200.00,2024-05-01,Overdue
+Ellen Ripley,$450.00,2024-05-15,Active
+Tony Stark,$15,000.00,2024-04-20,Overdue
+Sarah Connor,$2,500.00,2024-05-10,Active
+Bruce Wayne,$8,900.00,2024-05-25,Active
+Natasha Romanoff,$1,100.00,2024-05-05,Active
+Steve Rogers,$600.00,2024-04-15,Overdue
+Peter Parker,$150.00,2024-05-20,Active
+Diana Prince,$3,200.00,2024-05-12,Active
+Wanda Maximoff,$4,500.00,2024-04-30,Overdue

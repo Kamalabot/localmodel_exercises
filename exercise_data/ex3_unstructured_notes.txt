@@ -1,0 +1,6 @@
+- Remember to call Sarah about the Q3 report by Friday. Priority: High.
+- Buy more printer ink - Status: Pending.
+- Fix the bug in the login page - status: in progress. Priority: Critical.
+- Draft the board meeting agenda. Need this done ASAP. Status: To Do.
+- Review the new designs from the UX team. Priority: Medium.
+- Schedule sync with the marketing team for next Tuesday. Status: Not Started.

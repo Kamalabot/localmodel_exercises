@@ -1,0 +1,6 @@
+Name: Alex Rivera
+Current Role: Senior Product Manager at TechFlow Solutions
+Contact Info: alex.rivera@techflow.io | LinkedIn: linkedin.com/in/arivera99
+Bio: Passionate about building scalable SaaS products. Formerly at DataStream Inc. 5+ years in agile environments.
+Location: San Francisco, CA
+Skills: Python, SQL, Product Strategy, User Research

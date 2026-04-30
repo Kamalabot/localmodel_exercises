@@ -1,0 +1,18 @@
+INTERNAL MEMORANDUM: PROJECT COST CENTER ALLOCATIONS
+
+To: Finance Department
+From: Operations Strategy
+Date: April 30, 2024
+
+Please ensure all spreadsheet records are updated with the following Cost Center IDs for the upcoming audit. The following mappings are now official:
+
+1. PROJECT ALPHA (Hardware Development) -> COST CENTER: CC-9012
+2. PROJECT BETA (Cloud Infrastructure) -> COST CENTER: CC-4431
+3. PROJECT GAMMA (User Experience) -> COST CENTER: CC-1102
+4. PROJECT DELTA (Market Research) -> COST CENTER: CC-7785
+5. PROJECT EPSILON (Cybersecurity) -> COST CENTER: CC-2239
+6. PROJECT ZETA (AI Training) -> COST CENTER: CC-5564
+7. PROJECT ETA (Mobile App) -> COST CENTER: CC-3341
+8. PROJECT THETA (Data Privacy) -> COST CENTER: CC-8890
+
+Missing IDs should be cross-referenced with the Project Name column in the 'Sales Master' or 'Project Tracker' sheets.

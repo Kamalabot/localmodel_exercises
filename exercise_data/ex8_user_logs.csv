@@ -1,0 +1,13 @@
+User ID,Last Login,Status,Region,Device
+USR01,2023-01-01,Active,North,Mobile
+USR02,2023-02-15,Pending,East,Desktop
+USR01,2023-05-20,Active,North,Tablet
+USR03,2023-03-10,Inactive,West,Mobile
+USR02,2023-02-15,Active,South,Desktop
+USR01,2023-05-20,Inactive,South,Mobile
+USR03,2023-03-15,Active,West,Tablet
+USR02,2023-01-10,Active,East,Mobile
+USR04,2023-04-20,Active,North,Desktop
+USR01,2023-06-10,Active,North,Desktop
+USR03,2023-03-15,Pending,West,Mobile
+USR02,2023-06-01,Active,South,Tablet

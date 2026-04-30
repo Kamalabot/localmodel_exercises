@@ -1,0 +1,8 @@
+Item,Quantity,Unit Price,Total
+Widget A,10,15,150
+Widget B,5,N/A,#VALUE!
+Widget C,12,20,240
+Widget D,None,30,#VALUE!
+Widget E,8,10,80
+Widget F,15,Error,#VALUE!
+Widget G,20,5,100
