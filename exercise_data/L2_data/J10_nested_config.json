@@ -1,0 +1,19 @@
+{
+  "app": {
+    "settings": {
+      "network": {
+        "ports": [8080, 8081],
+        "protocols": ["http", "https"],
+        "security": {
+          "apiKey": "SECRET_KEY_12345",
+          "encryption": "AES-256"
+        }
+      },
+      "ui": {
+        "theme": "dark",
+        "notifications": true
+      }
+    },
+    "version": "2.4.1"
+  }
+}

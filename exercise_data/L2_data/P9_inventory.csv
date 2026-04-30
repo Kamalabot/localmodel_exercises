@@ -1,0 +1,9 @@
+ItemID,Description,CurrentStock,MinStock
+SKU-1001,Laptop Stand,15,20
+SKU-1002,USB-C Cable,150,100
+SKU-1003,Wireless Mouse,8,15
+SKU-1004,Monitor 24",5,10
+SKU-1005,Mechanical Keyboard,12,10
+SKU-1006,Webcam 1080p,3,12
+SKU-1007,Desk Lamp,25,20
+SKU-1008,Office Chair,2,5

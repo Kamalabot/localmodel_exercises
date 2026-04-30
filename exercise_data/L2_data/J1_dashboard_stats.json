@@ -1,0 +1,15 @@
+{
+  "last_updated": "2024-04-30",
+  "daily_stats": [
+    {"date": "2024-04-01", "visitors": 1200, "conversions": 45, "revenue": 1250.50},
+    {"date": "2024-04-02", "visitors": 1350, "conversions": 52, "revenue": 1400.75},
+    {"date": "2024-04-03", "visitors": 1100, "conversions": 38, "revenue": 980.20},
+    {"date": "2024-04-04", "visitors": 1500, "conversions": 65, "revenue": 2100.00},
+    {"date": "2024-04-05", "visitors": 1420, "conversions": 58, "revenue": 1750.30}
+  ],
+  "totals": {
+    "total_visitors": 6570,
+    "total_conversions": 258,
+    "total_revenue": 7481.75
+  }
+}

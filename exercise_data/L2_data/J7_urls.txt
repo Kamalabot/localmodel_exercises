@@ -1,0 +1,3 @@
+https://example.com/search?q=ai+coding&limit=10&page=2
+https://shop.io/products/item-001?color=blue&size=m&ref=newsletter
+https://portal.internal/dashboard?user=admin&session=xyz123&theme=dark

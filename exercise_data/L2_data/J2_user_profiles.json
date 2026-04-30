@@ -1,0 +1,26 @@
+[
+  {
+    "id": 1,
+    "name": "Bruce Wayne",
+    "email": "bruce@waynecorp.com",
+    "phone": "555-0199",
+    "address": "1007 Mountain Drive, Gotham",
+    "job_title": "CEO"
+  },
+  {
+    "id": 2,
+    "name": "Clark Kent",
+    "email": "clark.kent@dailyplanet.com",
+    "phone": "555-0122",
+    "address": "Metropolis",
+    "job_title": "Journalist"
+  },
+  {
+    "id": 3,
+    "name": "Diana Prince",
+    "email": "diana@themyscira.gov",
+    "phone": "555-0144",
+    "address": "Gateway City",
+    "job_title": "Curator"
+  }
+]
