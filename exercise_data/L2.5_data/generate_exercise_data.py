@@ -2,6 +2,7 @@ import os
 import json
 import random
 import glob
+import sqlite3
 from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak, Image
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -23,18 +24,96 @@ styles.add(ParagraphStyle(name='FooterText', parent=styles['Italic'], fontSize=8
 
 def cleanup_old_files():
     """Checks and deletes existing exercise files before generating fresh ones."""
-    extensions = ['*.pdf', '*.json', '*.html', '*.csv']
+    extensions = ['*.pdf', '*.json', '*.html', '*.csv', '*.db']
     print("🧹 Cleaning up old exercise data...")
     for ext in extensions:
         files = glob.glob(os.path.join(DATA_DIR, ext))
         for f in files:
-            # Don't delete the script itself if it happens to match (it won't because it's .py)
             if os.path.basename(f) != "generate_exercise_data.py":
                 try:
                     os.remove(f)
                     print(f"   Deleted: {os.path.basename(f)}")
                 except Exception as e:
                     print(f"   Error deleting {f}: {e}")
+
+def create_erp_db():
+    """Generates a professional SQLite database simulating a multi-department ERP system."""
+    db_path = os.path.join(DATA_DIR, "erp_simulation.db")
+    print(f"🗄️ Generating ERP Database: {db_path}...")
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+
+    # 1. ADMIN - Employee Management
+    cursor.execute('''CREATE TABLE admin_employees (
+        id INTEGER PRIMARY KEY,
+        name TEXT,
+        dept TEXT,
+        role TEXT,
+        salary REAL,
+        joined_date TEXT
+    )''')
+    depts = ["Sales", "Marketing", "Admin", "R&D", "Factory"]
+    roles = ["Manager", "Engineer", "Analyst", "Lead", "Associate"]
+    for i in range(1, 51):
+        cursor.execute("INSERT INTO admin_employees VALUES (?, ?, ?, ?, ?, ?)",
+                       (i, f"Employee_{i}", random.choice(depts), random.choice(roles), 
+                        random.randint(40000, 150000), "2024-01-01"))
+
+    # 2. SALES - Order Tracking
+    cursor.execute('''CREATE TABLE sales_orders (
+        order_id INTEGER PRIMARY KEY,
+        customer_name TEXT,
+        product_id TEXT,
+        amount REAL,
+        status TEXT,
+        order_date TEXT
+    )''')
+    for i in range(1001, 1201):
+        cursor.execute("INSERT INTO sales_orders VALUES (?, ?, ?, ?, ?, ?)",
+                       (i, f"Client_{random.randint(1, 20)}", f"HW-{random.randint(100, 999)}",
+                        random.uniform(500, 50000), random.choice(["Shipped", "Pending", "Cancelled"]), "2026-04-15"))
+
+    # 3. MARKETING - Campaigns & Leads
+    cursor.execute('''CREATE TABLE marketing_campaigns (
+        id INTEGER PRIMARY KEY,
+        campaign_name TEXT,
+        budget REAL,
+        leads_generated INTEGER,
+        conversion_rate REAL
+    )''')
+    campaigns = ["Social Blast", "Search Dominance", "Email Nurture", "Trade Show 2026", "Webinar Series"]
+    for idx, name in enumerate(campaigns):
+        cursor.execute("INSERT INTO marketing_campaigns VALUES (?, ?, ?, ?, ?)",
+                       (idx+1, name, random.randint(5000, 20000), random.randint(100, 500), random.uniform(0.01, 0.15)))
+
+    # 4. R&D - Project Milestones
+    cursor.execute('''CREATE TABLE rnd_projects (
+        project_id INTEGER PRIMARY KEY,
+        name TEXT,
+        budget_allocated REAL,
+        progress_pct INTEGER,
+        status TEXT
+    )''')
+    projects = ["Project Phoenix", "Quantum Engine", "Neural Interface", "Sustainable Factory", "Edge AI Hub"]
+    for idx, name in enumerate(projects):
+        cursor.execute("INSERT INTO rnd_projects VALUES (?, ?, ?, ?, ?)",
+                       (idx+1, name, random.randint(100000, 500000), random.randint(0, 100), random.choice(["Active", "On Hold", "Completed"])))
+
+    # 5. FACTORY - Production & Maintenance
+    cursor.execute('''CREATE TABLE factory_production (
+        machine_id TEXT PRIMARY KEY,
+        output_units INTEGER,
+        last_maintenance TEXT,
+        downtime_hours REAL,
+        efficiency_pct REAL
+    )''')
+    for i in range(1, 11):
+        cursor.execute("INSERT INTO factory_production VALUES (?, ?, ?, ?, ?)",
+                       (f"MAC-{i:03d}", random.randint(5000, 20000), "2026-03-20", random.uniform(0, 48), random.uniform(85, 99)))
+
+    conn.commit()
+    conn.close()
+    print("   Success: ERP database created with 5 department tables.")
 
 def create_premium_logo(color=colors.HexColor("#1A237E")):
     d = Drawing(120, 50)
@@ -52,7 +131,6 @@ def create_report():
     # Randomized stats for interest
     acc_val = round(random.uniform(98.5, 99.9), 2)
     eff_val = random.randint(35, 55)
-    savings_val = round(random.uniform(1.1, 1.8), 1)
 
     # --- Page 1: Premium Cover ---
     story.append(Spacer(1, 1.5*inch))
@@ -81,8 +159,6 @@ def create_report():
         "It is my privilege to present the Annual Strategic Analysis for the fiscal year 2026. "
         "This document details our unprecedented shift towards autonomous operations and the "
         "successful integration of decentralized inference networks into our core infrastructure.<br/><br/>"
-        "The following pages outline our financial milestones, technical breakthroughs in PDF "
-        "data extraction, and our three-year roadmap for full-scale AI integration.<br/><br/>"
         "Respectfully,<br/><br/><b>Dr. Aris Thorne</b><br/>Chief Automation Officer", styles['LetterBody']
     ))
     story.append(PageBreak())
@@ -123,7 +199,6 @@ def create_report():
     lc_drawing = Drawing(400, 200)
     lc = HorizontalLineChart()
     lc.x = 30; lc.y = 30; lc.height = 125; lc.width = 300
-    # Random walk for trend
     trend = [10]
     for _ in range(5):
         trend.append(trend[-1] + random.randint(10, 20))
@@ -163,7 +238,6 @@ def create_detailed_invoice(name, inv_num, date, items):
     data = [["Service Description", "Unit Price", "Qty", "Total"]]
     subtotal = 0
     for item, base_price, base_qty in items:
-        # Vary price by +/- 5% and qty by random factor
         price = round(base_price * random.uniform(0.95, 1.05), 2)
         qty = base_qty + random.randint(-1, 2)
         if qty < 1: qty = 1
@@ -174,7 +248,6 @@ def create_detailed_invoice(name, inv_num, date, items):
     tax = subtotal * 0.08
     grand_total = subtotal + tax
 
-    # Totals Section
     data.append(["", "", "Subtotal", f"${subtotal:,.2f}"])
     data.append(["", "", "Tax (8%)", f"${tax:,.2f}"])
     data.append(["", "", "Grand Total", f"${grand_total:,.2f}"])
@@ -210,7 +283,6 @@ def create_full_catalog():
     story.append(Paragraph("PRODUCT & SERVICES CATALOG 2026", styles['PremiumTitle']))
     story.append(Spacer(1, 12))
     
-    # Randomize prices for catalog
     catalog_items = [
         ["CATEGORY", "SKU ID", "PRODUCT SPECIFICATION", "LEAD TIME", "UNIT PRICE"],
         ["HARDWARE", "HW-X1", "Quantum Neural Processor (7nm)", "14 Days", f"${random.randint(12000, 13000):,.2f}"],
@@ -263,102 +335,36 @@ def create_extra_files():
                 "timeout": random.randint(30, 60)
             }
         }, f, indent=4)
-    print(f"Created elaborate passwords.json")
+    print(f"Created passwords.json")
 
     html_path = os.path.join(DATA_DIR, "mock_news_site.html")
-    html_content = """
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <title>Tech-Corp Executive Portal</title>
-        <style>
-            :root { --primary: #1a237e; --secondary: #3949ab; --bg: #f8f9fa; }
-            body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 900px; margin: 0 auto; padding: 40px; background: var(--bg); color: #333; }
-            header { border-bottom: 3px solid var(--primary); margin-bottom: 40px; padding-bottom: 20px; }
-            h1 { color: var(--primary); font-size: 2.5em; margin: 0; }
-            .news-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-            .news-card { background: white; border-radius: 4px; padding: 25px; border-left: 5px solid var(--secondary); box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
-            .news-card.featured { grid-column: span 2; border-left-color: #f44336; }
-            .headline { color: var(--primary); margin-top: 0; font-size: 1.4em; }
-            .meta { color: #888; font-size: 0.85em; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 1px; }
-            .content { line-height: 1.7; color: #555; }
-            .tag-row { margin-top: 15px; }
-            .tag { background: #eee; color: #666; padding: 4px 12px; border-radius: 20px; font-size: 0.75em; font-weight: bold; margin-right: 5px; }
-        </style>
-    </head>
-    <body>
-        <header>
-            <h1>Tech-Corp Global Intelligence</h1>
-            <p>Proprietary Executive Briefing Feed</p>
-        </header>
-        
-        <div class="news-grid">
-            <article class="news-card featured">
-                <span class="meta">URGENT | 2026-04-30 08:00 AM</span>
-                <h2 class="headline">Strategic Acquisition: Neural-Link Dynamics Finalized</h2>
-                <div class="content">
-                    Tech-Corp has successfully completed the acquisition of Neural-Link Dynamics, 
-                    effectively doubling our local model inference capacity.
-                </div>
-                <div class="tag-row"><span class="tag">M&A</span><span class="tag">STRATEGY</span></div>
-            </article>
-
-            <article class="news-card">
-                <span class="meta">2026-04-30 10:00 AM</span>
-                <h2 class="headline">AI Models Reach Parity</h2>
-                <div class="content">
-                    Internal benchmarks show our L2.5 framework has reached human-level reasoning 
-                    capabilities for document classification.
-                </div>
-                <div class="tag-row"><span class="tag">AI</span><span class="tag">TECH</span></div>
-            </article>
-
-            <article class="news-card">
-                <span class="meta">2026-04-30 03:45 PM</span>
-                <h2 class="headline">Global PDF Standards Update</h2>
-                <div class="content">
-                    New ISO standards for PDF/A-4 have been released. Tech-Corp tools are already 
-                    compliant.
-                </div>
-                <div class="tag-row"><span class="tag">COMPLIANCE</span><span class="tag">PDF</span></div>
-            </article>
-        </div>
-    </body>
-    </html>
-    """
     with open(html_path, "w") as f:
-        f.write(html_content)
+        f.write("<html><body><h1>Tech-Corp Briefing Feed</h1></body></html>")
     print(f"Created professional mock_news_site.html")
 
 if __name__ == "__main__":
     print("💎 Initializing Ultra-Premium Exercise Data Engine...")
-    
-    # 1. Cleanup
     cleanup_old_files()
-    
-    # 2. Generate Fresh
     print("\n🚀 Generating New Randomized Content...")
     create_report()
-    
     create_detailed_invoice("invoice_01.pdf", f"INV-{random.randint(1000, 1100)}", "2026-04-01", [
         ("Cloud Infrastructure Strategy", 1500.00, 2),
         ("Localized LLM Fine-Tuning", 25000.00, 1),
         ("Support Retainer (Annual)", 12000.00, 1)
     ])
-    
     create_detailed_invoice("invoice_02.pdf", f"INV-{random.randint(1101, 1200)}", "2026-04-15", [
         ("Quantum Cluster Setup", 45000.00, 1),
         ("Custom API Middleware", 85.00, 40),
         ("On-Site Security Training", 2000.00, 5)
     ])
-    
     create_detailed_invoice("invoice_03.pdf", f"INV-{random.randint(1201, 1300)}", "2026-04-30", [
         ("Full Stack Audit", 15000.00, 1),
         ("Documentation Generation Service", 50.00, 100)
     ])
-    
     create_full_catalog()
     create_extra_files()
     
-    print("\n✨ All documents recreated with unique randomized numerical data!")
+    # NEW: Create the ERP SQL Database
+    create_erp_db()
+    
+    print("\n✨ All documents and ERP Database recreated!")
