@@ -25,11 +25,21 @@ Welcome to the local model training exercises. These exercises are designed to h
 
 ---
 
-### 3. [Level 3: Master Level - Integration & Visualization](./Master_Exercises.md)
-*   **Focus:** API integration, Local Databases (SQLite), and Motion Graphics (GSAP).
-*   **Tools:** SQLite, GSAP, Vite/HTML/CSS, Python Scripts.
-*   **Key Files:** Located in `exercise_data/L3_Master`.
-
+### ACP Configs
+The following configuration details are for agent servers:
+```json
+  "agent_servers": {
+    "pi-acp":
+    { "type": "registry" },
+      "pi-windows": {
+        "type": "custom",
+        "command": "npx.cmd",
+        "args": ["-y", "pi-acp"],
+        "env": {
+          "PATH": "C:\\Program Files\\nodejs;C:\\Windows\\system32"
+      }
+    }
+```
 ---
 
 ## 🛠️ Global Prerequisites
