@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>GSAP Animation Example</title>
+    <!-- Include GSAP library from CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12/gsap.min.js"></script>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #1e1e1e; /* Dark background for terminal feel */
+        }
+        #box {
+            width: 150px;
+            height: 150px;
+            background-color: #4CAF50; /* Green color */
+            border-radius: 10px;
+            cursor: pointer;
+            text-align: center;
+            line-height: 150px;
+            color: white;
+            font-family: sans-serif;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="box">Hello GSAP</div>
+
+    <script>
+        // Wait for the DOM to be fully loaded before running animations
+        document.addEventListener("DOMContentLoaded", function() {
+            const box = document.getElementById("box");
+
+            // 1. Simple Tween Animation (Scale and Color Change)
+            gsap.to(box, {
+                duration: 1, // Duration in seconds
+                scale: 1.2,  // Scale up by 20%
+                backgroundColor: "#FF5733", // Orange-Red color change
+                rotation: 360, // Rotate 360 degrees
+                ease: "power2.out", // Easing function
+                delay: 0.5 // Wait half a second before starting
+            });
+
+            // 2. Timeline Animation (Sequencing multiple animations)
+            const tl = gsap.timeline({ paused: true }); // Create a timeline, initially paused
+
+            tl.to(box, {
+                duration: 0.5,
+                y: -100, // Move up
+                ease: "power1.inOut"
+            })
+            .to(box, {
+                duration: 0.8,
+                x: 200, // Move right
+                backgroundColor: "#33A0FF", // Blue color change
+                ease: "elastic.out(1, 0.5)" // Bouncy ease
+            });
+
+            // Play the timeline when the user clicks the box
+            box.addEventListener("click", function() {
+                // Reset state before playing (optional but good practice)
+                gsap.set(box, { scale: 1, backgroundColor: "#4CAF50", rotation: 0 });
+                tl.play(); // Play the sequence
+            });
+
+        });
+    </script>
+</body>
+</html>
