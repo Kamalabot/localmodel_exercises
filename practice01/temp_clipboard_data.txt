@@ -1,0 +1,6 @@
+ProductIDPriceCategoryStockLastRestock
+SKU-001	5.00	Electronics	12	2023-10-01
+SKU-002	2.50Stationery	150	2023-11-15
+SKU-003	9.99Home Decor	5	2023-12-05
+SKU-00420.00	Electronics	8	2023-09-20
+SKU-005.95	Stationery	300	2023-11-30
