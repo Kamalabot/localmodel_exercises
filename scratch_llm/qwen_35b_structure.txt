@@ -1,0 +1,34 @@
+=== Qwen 35B Architecture (Decoder-Only Transformer) ===
+
+Qwen35B(
+  (tok_embeddings): Embedding(152064, 7168)
+  (layers): ModuleList(
+    (0-59): 60 x QwenBlock(
+      (ln_1): RMSNorm()
+      (attn): QwenAttention(
+        (wq): Linear(in_features=7168, out_features=7168, bias=True)
+        (wk): Linear(in_features=7168, out_features=7168, bias=True)
+        (wv): Linear(in_features=7168, out_features=7168, bias=True)
+        (wo): Linear(in_features=7168, out_features=7168, bias=False)
+      )
+      (ln_2): RMSNorm()
+      (mlp): QwenMLP(
+        (w1): Linear(in_features=7168, out_features=20480, bias=False)
+        (w2): Linear(in_features=7168, out_features=20480, bias=False)
+        (w3): Linear(in_features=20480, out_features=7168, bias=False)
+      )
+    )
+  )
+  (norm): RMSNorm()
+  (output): Linear(in_features=7168, out_features=152064, bias=False)
+)
+
+=== Parameter Statistics ===
+- Embedding Parameters: 1.09 Billion
+- Attention Parameters (per layer): 205 Million
+- MLP Parameters (per layer): 293 Million
+- Total Layer Parameters: ~30 Billion
+- Output Head: 1.09 Billion
+------------------------------------------------------------
+Total Parameters: ~34.87 Billion
+------------------------------------------------------------

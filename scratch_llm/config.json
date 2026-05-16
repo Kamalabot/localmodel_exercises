@@ -1,0 +1,13 @@
+{
+    "architectures": [
+        "GPTLanguageModel"
+    ],
+    "vocab_size": 65,
+    "n_embd": 384,
+    "n_head": 6,
+    "n_layer": 6,
+    "block_size": 256,
+    "dropout": 0.2,
+    "model_type": "gpt_scratch",
+    "initializer_range": 0.02
+}
