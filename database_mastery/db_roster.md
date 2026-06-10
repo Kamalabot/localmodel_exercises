@@ -48,4 +48,4 @@ In Linux and windows the below setup has to be done
 
 sudo apt install python3.10-venv python-is-python3
 
-pip install PySide6 psycopg2-binary pymysql pymongo redis meilisearch neo4j cassandra-driver qdrant-client clickhouse-driver
+pip install PySide6 psycopg2-binary pymysql pymongo redis meilisearch neo4j cassandra-driver qdrant-client clickhouse-driver pip install duckdb surrealdb objectbox

@@ -1,6 +1,8 @@
 networks:
   db_network:
     driver: bridge
+  data_oriented_net:
+    driver: bridge
 
 services:
   # Paradigm: Relational (RDBMS)
@@ -183,7 +185,6 @@ services:
   cockroachdb:
     image: cockroachdb/cockroach:v24.1.0
     container_name: newsql-cockroach
-    profiles: ['manual']
     command: start-single-node --insecure
     ports:
       - "26257:26257" # SQL Port (Postgres wire compatible)
@@ -202,7 +203,6 @@ services:
   clickhouse:
     image: clickhouse/clickhouse-server:24.4-alpine
     container_name: olap-clickhouse
-    profiles: ['manual']
     ports:
       - "8123:8123" # HTTP Interface
       - "9000:9000" # Native Client / DBeaver
@@ -214,4 +214,54 @@ services:
       resources:
         limits:
           memory: 1500M
-  
+    
+  duckdb:
+    image: duckdb/duckdb:latest
+    container_name: memory-duckdb
+    entrypoint: ["/bin/sh", "-c"]
+    # Spins up a memory-backed instance and runs an interactive shell session to stay alive
+    command: 
+      - |
+        duckdb -c "INSTALL postgres; LOAD postgres; SELECT 'DuckDB In-Memory Engine Online';"
+        tail -f /dev/null
+    volumes:
+      - ./duckdb_data:/data
+    tty: true
+    stdin_open: true
+    networks:
+      - data_oriented_net
+    deploy:
+      resources:
+        limits:
+          memory: 1000M
+
+  # Paradigm: Object-Oriented DBMS (Embedded/Edge Data-Oriented)
+  # Licensing: Open Source / Proprietary Tools | Status: Actively Developed
+  objectbox:
+    image: objectboxio/admin:latest
+    container_name: memory-objectbox
+    ports:
+      - "8081:8081" # Exposes the ObjectBox Admin HTTP Endpoint for file inspection
+    volumes:
+      - ./objectbox_data:/db
+    networks:
+      - data_oriented_net
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  # Paradigm: In-Memory / Hybrid Document-Relational Multi-Model
+  # Licensing: Open Source (BSL 1.1) | Status: Actively Developed
+  surrealdb:
+    image: surrealdb/surrealdb:v2.0
+    container_name: multi-surreal
+    command: start --log trace --user root --pass SecretPassword123 memory
+    ports:
+      - "8000:8000" # Exposes HTTP/WebSocket endpoints natively supported by DBeaver
+    networks:
+      - data_oriented_net
+    deploy:
+      resources:
+        limits:
+          memory: 1000M
