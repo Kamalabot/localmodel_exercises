@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Map & Node Memory Visualizer</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&family=Outfit:wght@300;400;600&display=swap');
+
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: rgba(30, 41, 59, 0.7);
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --accent-key: #f59e0b; /* Orange for Keys */
+            --accent-node: #10b981; /* Green for Nodes */
+            --glass-border: rgba(255, 255, 255, 0.1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 2rem;
+            background-image: 
+                radial-gradient(circle at 15% 50%, rgba(245, 158, 11, 0.1), transparent 30%),
+                radial-gradient(circle at 85% 50%, rgba(16, 185, 129, 0.1), transparent 30%);
+            background-attachment: fixed;
+            overflow-x: hidden;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(to right, #fcd34d, #34d399);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-align: center;
+        }
+
+        p.subtitle {
+            color: var(--text-secondary);
+            margin-bottom: 2rem;
+            text-align: center;
+            max-width: 800px;
+            line-height: 1.6;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 2rem;
+        }
+
+        /* Form Panel */
+        .panel {
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            border-radius: 1.5rem;
+            padding: 2rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            height: fit-content;
+            position: sticky;
+            top: 2rem;
+        }
+
+        .panel h2 {
+            font-size: 1.25rem;
+            margin-bottom: 1.5rem;
+            font-weight: 600;
+        }
+
+        .form-group {
+            margin-bottom: 1.25rem;
+        }
+
+        label {
+            display: block;
+            font-size: 0.875rem;
+            margin-bottom: 0.5rem;
+            color: var(--text-secondary);
+        }
+
+        input {
+            width: 100%;
+            background: rgba(15, 23, 42, 0.5);
+            border: 1px solid var(--glass-border);
+            border-radius: 0.75rem;
+            padding: 0.75rem 1rem;
+            color: var(--text-primary);
+            font-family: 'Outfit', sans-serif;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        input:focus {
+            border-color: var(--accent-key);
+        }
+
+        button {
+            width: 100%;
+            background: var(--accent-key);
+            color: #0f172a;
+            border: none;
+            border-radius: 0.75rem;
+            padding: 0.75rem 1rem;
+            font-size: 1rem;
+            font-weight: 600;
+            font-family: 'Outfit', sans-serif;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 1rem;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(245, 158, 11, 0.4);
+            filter: brightness(1.1);
+        }
+
+        /* Visualization Area */
+        .visualization-area {
+            position: relative;
+            background: rgba(15, 23, 42, 0.4);
+            border: 1px dashed var(--glass-border);
+            border-radius: 1.5rem;
+            padding: 2rem;
+            display: flex;
+            justify-content: space-between;
+            min-height: 600px;
+        }
+
+        /* Layout for Maps and Nodes */
+        .map-section, .memory-section {
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+            width: 45%;
+            z-index: 2;
+        }
+
+        .section-title {
+            text-align: center;
+            font-size: 1.2rem;
+            color: var(--text-secondary);
+            margin-bottom: 1rem;
+            font-family: 'Fira Code', monospace;
+            border-bottom: 1px solid var(--glass-border);
+            padding-bottom: 0.5rem;
+        }
+
+        /* Key Box */
+        .key-box {
+            background: rgba(245, 158, 11, 0.1);
+            border: 2px solid var(--accent-key);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            text-align: center;
+            font-family: 'Fira Code', monospace;
+            font-weight: bold;
+            color: var(--accent-key);
+            box-shadow: 0 4px 6px -1px rgba(245, 158, 11, 0.2);
+            position: relative;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        
+        .key-box:hover {
+            transform: scale(1.05);
+        }
+
+        /* Node Box (Object in Heap Memory) */
+        .node-box {
+            background: rgba(16, 185, 129, 0.1);
+            border: 2px solid var(--accent-node);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            font-family: 'Fira Code', monospace;
+            box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.2);
+            position: relative;
+            transition: transform 0.2s;
+        }
+
+        .node-box:hover {
+            transform: scale(1.05);
+        }
+
+        .node-header {
+            color: var(--accent-node);
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+            font-size: 1.1rem;
+        }
+
+        .node-field {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin: 0.25rem 0;
+        }
+
+        .node-field span {
+            color: var(--text-primary);
+        }
+
+        /* SVG for drawing connecting arrows */
+        #svgCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .connector-line {
+            stroke: rgba(255, 255, 255, 0.3);
+            stroke-width: 2;
+            fill: none;
+            stroke-dasharray: 8, 4;
+            animation: dash 1s linear infinite;
+        }
+
+        .connector-arrow {
+            fill: rgba(255, 255, 255, 0.5);
+        }
+
+        @keyframes dash {
+            to {
+                stroke-dashoffset: -12;
+            }
+        }
+        
+        .code-block {
+            background: #000;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.85rem;
+            color: #5eead4;
+            margin-top: 1rem;
+            overflow-x: auto;
+        }
+
+        /* Actions */
+        .remove-btn {
+            position: absolute;
+            top: -10px;
+            right: -10px;
+            background: #ef4444;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            cursor: pointer;
+            font-weight: bold;
+            display: none;
+        }
+
+        .key-box:hover .remove-btn {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Data Structure: Maps & Nodes</h1>
+    <p class="subtitle">
+        In Java, a <code>HashMap</code> maps unique <strong>Keys</strong> to specific <strong>Object Nodes</strong> in memory. 
+        When you call <code>studentMap.put(101, new Student(...))</code>, it creates a Key (101) which acts as a pointer directing to a dynamically allocated Student Node in the Heap Memory.
+    </p>
+
+    <div class="container">
+        <!-- Controls Panel -->
+        <div class="panel">
+            <h2>Add to Map ( .put )</h2>
+            <form id="addStudentForm">
+                <div class="form-group">
+                    <label for="studentId">Map Key (Student ID)</label>
+                    <input type="number" id="studentId" required placeholder="e.g. 104">
+                </div>
+                <div class="form-group">
+                    <label for="studentName">Node Property: Name</label>
+                    <input type="text" id="studentName" required placeholder="e.g. David Miller">
+                </div>
+                <div class="form-group">
+                    <label for="studentGrade">Node Property: Grade</label>
+                    <input type="number" step="0.1" id="studentGrade" required placeholder="e.g. 88.5">
+                </div>
+                <button type="submit">studentMap.put(...)</button>
+            </form>
+            
+            <div class="code-block">
+                Map&lt;Integer, Student&gt; map<br>
+                &nbsp;&nbsp;= new HashMap&lt;&gt;();
+            </div>
+        </div>
+
+        <!-- Visualization Area -->
+        <div class="visualization-area" id="visArea">
+            <!-- SVG Canvas for Arrows -->
+            <svg id="svgCanvas">
+                <defs>
+                    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                        <polygon points="0 0, 10 3.5, 0 7" class="connector-arrow" />
+                    </marker>
+                </defs>
+            </svg>
+
+            <!-- Map Keys Column -->
+            <div class="map-section" id="keysContainer">
+                <div class="section-title">Map Keys (Integer)</div>
+                <!-- Keys rendered via JS -->
+            </div>
+
+            <!-- Memory Nodes Column -->
+            <div class="memory-section" id="nodesContainer">
+                <div class="section-title">Heap Memory (Student Nodes)</div>
+                <!-- Nodes rendered via JS -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // State
+        const studentMap = new Map([
+            [101, { name: "Alice Smith", grade: 92.5 }],
+            [102, { name: "Bob Johnson", grade: 85.0 }],
+            [103, { name: "Charlie Brown", grade: 78.5 }]
+        ]);
+
+        const keysContainer = document.getElementById('keysContainer');
+        const nodesContainer = document.getElementById('nodesContainer');
+        const svgCanvas = document.getElementById('svgCanvas');
+        const visArea = document.getElementById('visArea');
+
+        // Draw an SVG connecting line from a Key to a Node
+        function drawConnection(keyEl, nodeEl, id) {
+            const visRect = visArea.getBoundingClientRect();
+            const keyRect = keyEl.getBoundingClientRect();
+            const nodeRect = nodeEl.getBoundingClientRect();
+
+            // Calculate relative positions inside the visArea
+            const startX = keyRect.right - visRect.left;
+            const startY = keyRect.top + (keyRect.height / 2) - visRect.top;
+            
+            const endX = nodeRect.left - visRect.left - 10; // offset for arrow
+            const endY = nodeRect.top + (nodeRect.height / 2) - visRect.top;
+
+            // Draw a bezier curve
+            const controlX1 = startX + (endX - startX) / 2;
+            const controlX2 = startX + (endX - startX) / 2;
+            
+            const pathData = \`M \${startX} \${startY} C \${controlX1} \${startY}, \${controlX2} \${endY}, \${endX} \${endY}\`;
+            
+            const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            path.setAttribute('d', pathData);
+            path.setAttribute('class', 'connector-line');
+            path.setAttribute('marker-end', 'url(#arrowhead)');
+            path.setAttribute('id', \`path-\${id}\`);
+            
+            svgCanvas.appendChild(path);
+        }
+
+        function renderVisualization() {
+            // Clear existing
+            const titleKeys = keysContainer.firstElementChild;
+            const titleNodes = nodesContainer.firstElementChild;
+            keysContainer.innerHTML = '';
+            nodesContainer.innerHTML = '';
+            keysContainer.appendChild(titleKeys);
+            nodesContainer.appendChild(titleNodes);
+            
+            // Clear lines except defs
+            const defs = svgCanvas.querySelector('defs');
+            svgCanvas.innerHTML = '';
+            svgCanvas.appendChild(defs);
+
+            // Create elements
+            studentMap.forEach((student, key) => {
+                // 1. Create Key Box
+                const keyBox = document.createElement('div');
+                keyBox.className = 'key-box';
+                keyBox.id = \`key-\${key}\`;
+                keyBox.innerHTML = \`
+                    Key: \${key}
+                    <button class="remove-btn" onclick="removeEntry(\${key})" title="map.remove(\${key})">×</button>
+                \`;
+                keysContainer.appendChild(keyBox);
+
+                // 2. Create Node Box
+                const nodeBox = document.createElement('div');
+                nodeBox.className = 'node-box';
+                nodeBox.id = \`node-\${key}\`;
+                // Generate a fake memory address for realism
+                const memAddress = "0x" + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0').toUpperCase();
+                
+                nodeBox.innerHTML = \`
+                    <div class="node-header">Student Node Object</div>
+                    <div class="node-field">Memory Addr: <span>\${memAddress}</span></div>
+                    <div class="node-field">id: <span>\${key}</span></div>
+                    <div class="node-field">name: <span>"\${student.name}"</span></div>
+                    <div class="node-field">grade: <span>\${student.grade.toFixed(1)}</span></div>
+                \`;
+                nodesContainer.appendChild(nodeBox);
+            });
+
+            // Need to wait for layout to draw lines
+            setTimeout(() => {
+                studentMap.forEach((student, key) => {
+                    const keyEl = document.getElementById(\`key-\${key}\`);
+                    const nodeEl = document.getElementById(\`node-\${key}\`);
+                    if(keyEl && nodeEl) {
+                        drawConnection(keyEl, nodeEl, key);
+                    }
+                });
+            }, 50);
+        }
+
+        // Add form handler
+        document.getElementById('addStudentForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const id = parseInt(document.getElementById('studentId').value);
+            const name = document.getElementById('studentName').value;
+            const grade = parseFloat(document.getElementById('studentGrade').value);
+
+            studentMap.set(id, { name, grade });
+            renderVisualization();
+            e.target.reset();
+        });
+
+        // Remove handler
+        window.removeEntry = function(id) {
+            studentMap.delete(id);
+            renderVisualization();
+        };
+
+        // Handle window resize to redraw lines
+        window.addEventListener('resize', renderVisualization);
+
+        // Initial render
+        renderVisualization();
+    </script>
+</body>
+</html>
