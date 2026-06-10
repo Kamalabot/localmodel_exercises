@@ -1,0 +1,251 @@
+networks:
+  db_network:
+    driver: bridge
+
+services:
+  # Paradigm: Relational (RDBMS)
+  # Licensing: Open Source (PostgreSQL License) | Status: Actively Developed
+  postgres:
+    image: postgres:17-alpine
+    container_name: rdbms-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: SecretPassword123
+      POSTGRES_DB: main_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./postgres_data:/var/lib/postgresql/data
+    networks:
+      - db_network
+    deploy:
+      resources:
+        limits:
+          memory: 1500M
+
+  # Paradigm: Relational (RDBMS)
+  # Licensing: Open Source (GPL v2) | Status: Actively Developed
+  mysql:
+    image: mysql:9.0
+    container_name: rdbms-mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: SecretPassword123
+      MYSQL_DATABASE: main_db
+      MYSQL_USER: admin
+      MYSQL_PASSWORD: SecretPassword123
+    ports:
+      - "3306:3306"
+    volumes:
+      - ./mysql_data:/var/lib/mysql
+    networks:
+      - db_network
+    deploy:
+      resources:
+        limits:
+          memory: 1500M
+
+  # Paradigm: Document Store (NoSQL)
+  # Licensing: Source-Available (SSPL) | Status: Actively Developed
+  mongodb:
+    image: mongo:7.0
+    container_name: nosql-mongo
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: SecretPassword123
+    ports:
+      - "27017:27017"
+    volumes:
+      - ./mongo_data:/data/db
+    networks:
+      - db_network
+    deploy:
+      resources:
+        limits:
+          memory: 1500M
+
+  # Paradigm: In-Memory / Key-Value
+  # Licensing: Source-Available (RSALv2/SSPLv1) | Status: Actively Developed
+  redis:
+    image: redis:7.4-alpine
+    container_name: kv-redis
+    restart: always
+    command: redis-server --requirepass SecretPassword123 --maxmemory 512mb --maxmemory-policy allkeys-lru
+    ports:
+      - "6379:6379"
+    volumes:
+      - ./redis_data:/data
+    networks:
+      - db_network
+    deploy:
+      resources:
+        limits:
+          memory: 768M
+
+  # Paradigm: Search Engine
+  # Licensing: Open Source (MIT) | Status: Actively Developed
+  meilisearch:
+    image: getmeili/meilisearch:v1.9
+    container_name: search-meili
+    restart: always
+    environment:
+      - MEILI_MASTER_KEY=SecretMasterKey1234567890
+      - MEILI_ENV=development
+    ports:
+      - "7700:7700"
+    volumes:
+      - ./meilisearch_data:/meili_data
+    networks:
+      - db_network
+    deploy:
+      resources:
+        limits:
+          memory: 1000M
+
+  # Paradigm: Time-Series / IoT
+  # Licensing: Open Source (Apache 2.0 / Timescale License) | Status: Actively Developed
+  timescaledb:
+    image: timescale/timescaledb:latest-pg16
+    container_name: ts-timescale
+    restart: always
+    environment:
+      - POSTGRES_PASSWORD=SecretPassword123
+    ports:
+      - "5433:5432" # Shifted host port to prevent conflict with native Postgres
+    volumes:
+      - ./timescale_data:/var/lib/postgresql/data
+    networks:
+      - db_network
+    deploy:
+      resources:
+        limits:
+          memory: 1500M
+  # Paradigm: Graph Database
+  # Licensing: Open Source (GPL v3) / Enterprise | Status: Actively Developed
+  neo4j:
+    image: neo4j:5.20-community
+    container_name: graph-neo4j
+    restart: always
+    environment:
+      - NEO4J_AUTH=neo4j/SecretPassword123
+    ports:
+      - "7474:7474" # HTTP Browser UI
+      - "7687:7687" # Bolt Protocol (DBeaver Connection)
+    volumes:
+      - ./neo4j_data:/data
+    networks:
+      - db_network
+    deploy:
+      resources:
+        limits:
+          memory: 1200M
+
+  # Paradigm: Wide-Column Store
+  # Licensing: Open Source (Apache 2.0) | Status: Actively Developed
+  cassandra:
+    image: cassandra:5.0
+    container_name: wide-cassandra
+    restart: always
+    environment:
+      - CASSANDRA_CLUSTER_NAME=TestCluster
+    ports:
+      - "9042:9042" # Native transport port
+    volumes:
+      - ./cassandra_data:/var/lib/cassandra
+    networks:
+      - db_network
+    deploy:
+      resources:
+        limits:
+          memory: 1500M
+
+  # Paradigm: Vector Database (AI/Embeddings)
+  # Licensing: Open Source (Apache 2.0) | Status: Actively Developed
+  qdrant:
+    image: qdrant/qdrant:v1.9.0
+    container_name: vector-qdrant
+    restart: always
+    ports:
+      - "6333:6333" # REST API
+      - "6334:6334" # gRPC API
+    volumes:
+      - ./qdrant_data:/qdrant/storage
+    networks:
+      - db_network
+    deploy:
+      resources:
+        limits:
+          memory: 800M
+  # Paradigm: NewSQL / Distributed Relational (ACID scales horizontally)
+  # Licensing: Open Source (Apache 2.0) | Status: Actively Developed
+  cockroachdb:
+    image: cockroachdb/cockroach:v24.1.0
+    container_name: newsql-cockroach
+    profiles: ['manual']
+    command: start-single-node --insecure
+    ports:
+      - "26257:26257" # SQL Port (Postgres wire compatible)
+      - "8080:8080"   # Web Admin UI
+    volumes:
+      - ./cockroach_data:/cockroach/cockroach-data
+    networks:
+      - db_network
+    deploy:
+      resources:
+        limits:
+          memory: 1500M
+
+  # Paradigm: Columnar OLAP (Analytical Data Warehousing)
+  # Licensing: Open Source (Apache 2.0) | Status: Actively Developed
+  clickhouse:
+    image: clickhouse/clickhouse-server:24.4-alpine
+    container_name: olap-clickhouse
+    profiles: ['manual']
+    ports:
+      - "8123:8123" # HTTP Interface
+      - "9000:9000" # Native Client / DBeaver
+    volumes:
+      - ./clickhouse_data:/var/lib/clickhouse
+    networks:
+      - db_network
+    deploy:
+      resources:
+        limits:
+          memory: 1500M
+
+  # Paradigm: Embedded / Serverless Relational OLAP
+  # Licensing: Open Source (MIT) | Status: Actively Developed
+  # Note: Running as a thin containerized network interface wrapper
+  duckdb:
+    image: duckdb/duckdb:latest
+    container_name: embedded-duckdb
+    profiles: ['manual']
+    command: -c "SELECT 'DuckDB Container Engine Online';"
+    tty: true
+    stdin_open: true
+    volumes:
+      - ./duckdb_data:/data
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  # Paradigm: Object-Oriented DBMS (OODBMS)
+  # Licensing: Open Source (Apache 2.0) | Status: Actively Developed
+  objectbox:
+    image: objectbox/objectbox:latest
+    container_name: oodbms-objectbox
+    profiles: ['manual']
+    ports:
+      - "8081:8081" # ObjectBox Admin UI
+    volumes:
+      - ./objectbox_data:/objectbox/data
+    networks:
+      - db_network
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+  
