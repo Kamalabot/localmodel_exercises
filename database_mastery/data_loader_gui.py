@@ -34,7 +34,6 @@ class DatabaseIngestWorker(QRunnable):
                     database=self.config['db'], user=self.config['user'], password=self.config['pass']
                 )
                 cur = conn.cursor()
-                # Create dummy structure if not exists
                 cur.execute("CREATE TABLE IF NOT EXISTS system_logs (id TEXT, timestamp TEXT, event TEXT, payload TEXT);")
                 cur.execute(
                     "INSERT INTO system_logs (id, timestamp, event, payload) VALUES (%s, %s, %s, %s);",
@@ -76,7 +75,6 @@ class DatabaseIngestWorker(QRunnable):
             elif self.db_type == "Meilisearch":
                 import meilisearch
                 client = meilisearch.Client(f"http://{self.config['host']}:{self.config['port']}", self.config['pass'])
-                # Primary key field constraint mapping
                 client.index('logs').add_documents([self.mock_data], primary_key='id')
 
             elif self.db_type == "Neo4j":
@@ -93,7 +91,6 @@ class DatabaseIngestWorker(QRunnable):
                 from qdrant_client import QdrantClient
                 from qdrant_client.models import PointStruct, VectorParams, Distance
                 client = QdrantClient(host=self.config['host'], port=int(self.config['port']))
-                # Generate simple dummy 3-dimensional vector space mapping
                 vectors = [random.random(), random.random(), random.random()]
                 client.recreate_collection(collection_name="events", vectors_config=VectorParams(size=3, distance=Distance.COSINE))
                 client.upsert(
@@ -110,6 +107,33 @@ class DatabaseIngestWorker(QRunnable):
                     [(self.mock_data['id'], self.mock_data['timestamp'], self.mock_data['event'])]
                 )
 
+            elif self.db_type == "DuckDB":
+                import duckdb
+                # Connect directly to the local persistent database file mapping
+                conn = duckdb.connect(self.config['db_file'])
+                conn.execute("CREATE TABLE IF NOT EXISTS memory_events (id VARCHAR, timestamp VARCHAR, event VARCHAR);")
+                conn.execute(
+                    "INSERT INTO memory_events VALUES (?, ?, ?);",
+                    (self.mock_data['id'], self.mock_data['timestamp'], self.mock_data['event'])
+                )
+                conn.close()
+
+            elif self.db_type == "ObjectBox":
+                # ObjectBox stores dynamic object properties based on custom bindings. 
+                # Simulating structural persistence directly into the mount target path.
+                with open(f"{self.config['data_dir']}/mock_objects.jsonl", "a") as f:
+                    f.write(json.dumps(self.mock_data) + "\n")
+
+            elif self.db_type == "SurrealDB":
+                import requests
+                # Connect via HTTP REST interface
+                url = f"http://{self.config['host']}:{self.config['port']}/key/events/{self.mock_data['id']}"
+                headers = {"Accept": "application/json", "NS": "test", "DB": "test"}
+                auth = (self.config['user'], self.config['pass'])
+                response = requests.put(url, json=self.mock_data, headers=headers, auth=auth)
+                if response.status_code not in [200, 201]:
+                    raise Exception(f"SurrealDB Error: {response.text}")
+
             self.signals.log.emit(f"✅ Data payload flushed successfully to {self.db_type}.")
             self.signals.finished.emit(self.db_type)
             
@@ -121,7 +145,7 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Unified Multi-Paradigm Data Ingestion Node")
-        self.setMinimumSize(QSize(1100, 650))
+        self.setMinimumSize(QSize(1150, 700))
         self.thread_pool = QThreadPool()
         
         # Internal configuration storage lookup mappings
@@ -133,7 +157,10 @@ class MainWindow(QMainWindow):
             "Meilisearch": {"host": "localhost", "port": "7700", "db": "", "user": "", "pass": "SecretMasterKey1234567890"},
             "Neo4j": {"host": "localhost", "port": "7687", "db": "", "user": "neo4j", "pass": "SecretPassword123"},
             "Qdrant": {"host": "localhost", "port": "6333", "db": "", "user": "", "pass": ""},
-            "ClickHouse": {"host": "localhost", "port": "9000", "db": "default", "user": "default", "pass": ""}
+            "ClickHouse": {"host": "localhost", "port": "9000", "db": "default", "user": "default", "pass": ""},
+            "DuckDB": {"db_file": "./duckdb_data/local_lab.db"},
+            "ObjectBox": {"data_dir": "./objectbox_data"},
+            "SurrealDB": {"host": "localhost", "port": "8000", "user": "root", "pass": "SecretPassword123"}
         }
         
         self.current_mock_data = {}
@@ -147,7 +174,6 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(main_widget)
         main_layout = QHBoxLayout(main_widget)
         
-        # Split left selector from right details workspace
         splitter = QSplitter(Qt.Horizontal)
         main_layout.addWidget(splitter)
         
@@ -167,13 +193,12 @@ class MainWindow(QMainWindow):
         sidebar_layout.addWidget(self.db_list)
         splitter.addWidget(sidebar_widget)
         
-        # Right Panel: Configuration + Real-time Generation Flow Controls
+        # Right Panel: Configuration + Controls
         right_container = QSplitter(Qt.Vertical)
-        
         top_workspace = QWidget()
         top_layout = QHBoxLayout(top_workspace)
         
-        # Column 1 inside Workspace: Parameter Settings Forms
+        # Column 1: Configuration Form Forms
         self.config_stack = QStackedWidget()
         self.build_configuration_forms()
         
@@ -183,7 +208,7 @@ class MainWindow(QMainWindow):
         config_vbox.addWidget(self.config_stack)
         top_layout.addWidget(config_box, stretch=2)
         
-        # Column 2 inside Workspace: Visibility of Live Generated Structured Data 
+        # Column 2: Data visibility Matrix
         preview_box = QWidget()
         preview_vbox = QVBoxLayout(preview_box)
         preview_vbox.addWidget(QLabel("<b>Outgoing Structured Document Payload</b>"))
@@ -206,7 +231,7 @@ class MainWindow(QMainWindow):
         top_layout.addWidget(preview_box, stretch=3)
         right_container.addWidget(top_workspace)
         
-        # Lower Workspace Segment: System standard logging trace
+        # Lower Workspace Segment: Log Terminal Console
         log_widget = QWidget()
         log_layout = QVBoxLayout(log_widget)
         log_layout.addWidget(QLabel("<b>Standard Pipeline Execution Trace Log</b>"))
@@ -215,11 +240,12 @@ class MainWindow(QMainWindow):
         self.console_output.setStyleSheet("font-family: monospace; background-color: #1e1e1e; color: #d4d4d4;")
         log_layout.addWidget(self.console_output)
         
+        log_widget.setFixedHeight(220)
+        log_layout.addWidget(self.console_output)
         right_container.addWidget(log_widget)
-        splitter.addWidget(right_container)
         
-        splitter.setSizes([220, 880])
-        right_container.setSizes([350, 250])
+        splitter.addWidget(right_container)
+        splitter.setSizes([220, 930])
 
     def build_configuration_forms(self):
         for db_name, fields in self.db_meta.items():
@@ -230,8 +256,8 @@ class MainWindow(QMainWindow):
             self.input_fields_map[db_name] = {}
             for field_key, default_val in fields.items():
                 row = QHBoxLayout()
-                lbl = QLabel(f"{field_key.capitalize()}:")
-                lbl.setMinimumWidth(60)
+                lbl = QLabel(f"{field_key.replace('_', ' ').capitalize()}:")
+                lbl.setMinimumWidth(80)
                 line_edit = QLineEdit(default_val)
                 row.addWidget(lbl)
                 row.addWidget(line_edit)
@@ -261,15 +287,13 @@ class MainWindow(QMainWindow):
     def fire_ingest_worker(self):
         selected_db = self.db_list.currentItem().text()
         
-        # Read parameters straight from the interface fields
         runtime_config = {}
         for field_key, line_edit in self.input_fields_map[selected_db].items():
             runtime_config[field_key] = line_edit.text()
             
-        # Instantiate and submit the operational task worker
         worker = DatabaseIngestWorker(selected_db, runtime_config, self.current_mock_data)
         worker.signals.log.connect(self.append_log)
-        worker.signals.finished.connect(lambda db: self.generate_new_payload()) # Auto cycle to next test vector
+        worker.signals.finished.connect(lambda db: self.generate_new_payload())
         
         self.thread_pool.start(worker)
 
