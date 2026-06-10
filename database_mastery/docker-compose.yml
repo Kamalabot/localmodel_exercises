@@ -214,38 +214,4 @@ services:
       resources:
         limits:
           memory: 1500M
-
-  # Paradigm: Embedded / Serverless Relational OLAP
-  # Licensing: Open Source (MIT) | Status: Actively Developed
-  # Note: Running as a thin containerized network interface wrapper
-  duckdb:
-    image: duckdb/duckdb:latest
-    container_name: embedded-duckdb
-    profiles: ['manual']
-    command: -c "SELECT 'DuckDB Container Engine Online';"
-    tty: true
-    stdin_open: true
-    volumes:
-      - ./duckdb_data:/data
-    deploy:
-      resources:
-        limits:
-          memory: 512M
-
-  # Paradigm: Object-Oriented DBMS (OODBMS)
-  # Licensing: Open Source (Apache 2.0) | Status: Actively Developed
-  objectbox:
-    image: objectbox/objectbox:latest
-    container_name: oodbms-objectbox
-    profiles: ['manual']
-    ports:
-      - "8081:8081" # ObjectBox Admin UI
-    volumes:
-      - ./objectbox_data:/objectbox/data
-    networks:
-      - db_network
-    deploy:
-      resources:
-        limits:
-          memory: 512M
   
