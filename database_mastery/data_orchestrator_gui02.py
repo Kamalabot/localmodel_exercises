@@ -1,25 +1,22 @@
 import sys
 import json
 import random
-import subprocess
-import time
 import socket
 from datetime import datetime
-from PySide6.QtCore import Qt, QSize, QRunnable, QThreadPool, Signal, QObject, QProcess
+
+from PySide6.QtCore import Qt, QSize, QRunnable, QThreadPool, Signal, QObject, QThread, Slot
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QHBoxLayout, QVBoxLayout, 
     QListWidget, QStackedWidget, QLabel, QLineEdit, QPushButton, 
     QTextEdit, QTableWidget, QTableWidgetItem, QHeaderView, QSplitter
 )
 import paramiko
-from PySide6.QtCore import QThread, Signal, Slot
 
 VM_IP = "192.168.31.180"
-COMPOSE_FILE = "custom-compose.yml"
+COMPOSE_FILE = "docker-compose.yml"
 SSH_USER = "vboxuser"
 SSH_PASS = "1234"
 
-# Maps user-facing sidebar titles to the exact service keys configured inside your Compose file
 SERVICE_MAPPING = {
     "PostgreSQL": "postgres",
     "MySQL": "mysql",
@@ -32,92 +29,61 @@ SERVICE_MAPPING = {
     "Qdrant": "qdrant"
 }
 
+# --- Asynchronous SSH Framework Container ---
+class SSHWorkerSignals(QObject):
+    log = Signal(str)
+    finished = Signal()
+
 
 class SSHDockerWorker(QThread):
-    """Background worker to handle blocking Paramiko SSH operations."""
-    finished_signal = Signal(int, str)  # status_code, output_or_error
-
-    def __init__(self, host, username, password, command):
+    """Background worker to isolate blocking Paramiko SSH socket connections."""
+    def __init__(self, host, username, password, command, service):
         super().__init__()
         self.host = host
         self.username = username
         self.password = password
         self.command = command
+        self.service = service
+        self.signals = SSHWorkerSignals()
 
     def run(self):
         ssh = paramiko.SSHClient()
         ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         try:
-            # Establish blocking network connection safely in this background thread
+            self.signals.log.emit(f"🐳 Connecting to Remote Host Engine via SSH at {self.host}...")
             ssh.connect(self.host, username=self.username, password=self.password, timeout=10)
             
-            # Execute command
+            self.signals.log.emit(f"🚀 Dispatching remote container optimization layers...")
             stdin, stdout, stderr = ssh.exec_command(self.command)
             
-            # Read channels (blocking operation)
             exit_status = stdout.channel.recv_exit_status()
             output = stdout.read().decode().strip()
             error = stderr.read().decode().strip()
             
             if exit_status == 0:
-                self.finished_signal.emit(0, output)
+                self.signals.log.emit(f"✅ Docker remote start signal accepted for {self.service}.")
+                self.signals.finished.emit()
             else:
-                self.finished_signal.emit(exit_status, error if error else output)
+                combined_err = error if error else output
+                self.signals.log.emit(f"⚠️ Remote SSH/Docker Error (Code {exit_status}): {combined_err}")
                 
         except Exception as e:
-            self.finished_signal.emit(-1, str(e))
+            self.signals.log.emit(f"❌ SSH Connection Refused: {str(e)}")
         finally:
             ssh.close()
 
 
-def boot_docker_node(self):
-    service = SERVICE_MAPPING.get(self.db_name)
-    if not service:
-        self.signals.log.emit(f"ℹ️ {self.db_name} operates as an in-process local framework. No Docker profile target required.")
-        return
-
-    self.signals.log.emit(f"🐳 Dispatching remote Paramiko SSH command for: [{service}]...")
-
-    # Define remote target details and command string
-    # (Replace VM_IP, SSH_USER, and SSH_PASS with your config variables)
-    remote_cmd = f"docker compose up -d {service}"
-
-    # Initialize the background thread worker to decouple from UI loop
-    self.ssh_worker = SSHDockerWorker(
-        host=VM_IP, 
-        username=SSH_USER, 
-        password=SSH_PASS, 
-        command=remote_cmd
-    )
-
-    # Handle completion via signals safely back on the GUI main loop
-    def on_ssh_finished(exit_code, output):
-        if exit_code == 0:
-            self.signals.log.emit(f"✅ Docker remote start signal accepted for {service}.")
-            self.verify_socket_handshake()
-        else:
-            self.signals.log.emit(f"⚠️ Remote SSH/Docker Error (Code {exit_code}): {output}")
-        
-        # Clean up thread memory
-        self.ssh_worker.deleteLater()
-
-    # Connect worker signal to callback
-    self.ssh_worker.finished_signal.connect(on_ssh_finished)
-    
-    # Fire off background execution
-    self.ssh_worker.start()
-
-
+# --- Exception-Safe ThreadPool Core Worker ---
 class TaskSignals(QObject):
     log = Signal(str)
     data_fetched = Signal(list, list)
     finished = Signal()
 
-# --- Exception-Safe Core Worker ---
+
 class DatabaseTaskWorker(QRunnable):
     def __init__(self, action_type, db_name, config, mock_data=None):
         super().__init__()
-        self.action_type = action_type # "start_service", "stream_payload", or "fetch_view"
+        self.action_type = action_type # "stream_payload" or "fetch_view"
         self.db_name = db_name
         self.config = config
         self.mock_data = mock_data
@@ -125,72 +91,14 @@ class DatabaseTaskWorker(QRunnable):
 
     def run(self):
         try:
-            if self.action_type == "start_service":
-                self.boot_docker_node()
-            elif self.action_type == "stream_payload":
+            if self.action_type == "stream_payload":
                 self.commit_payload_direct()
             elif self.action_type == "fetch_view":
                 self.execute_data_fetch()
         except Exception as general_fault:
-            self.signals.log.emit(f"💥 Thread Runtime Fault: {str(general_fault)}")
+            self.signals.log.emit(f"💥 Thread Pool Runtime Fault: {str(general_fault)}")
         finally:
             self.signals.finished.emit()
-
-    from PySide6.QtCore import QProcess
-
-    def un_used_boot_docker_node(self):
-        service = SERVICE_MAPPING.get(self.db_name)
-        if not service:
-            self.signals.log.emit(f"ℹ️ {self.db_name} operates as an in-process local framework. No Docker profile target required.")
-            return
-
-        self.signals.log.emit(f"🐳 Dispatching Docker infrastructure startup flag for: [{service}]...")
-
-        # Initialize QProcess
-        self.process = QProcess()
-        
-        # Merge channels so stdout and stderr can be read together if needed
-        self.process.setProcessChannelMode(QProcess.ProcessChannelMode.MergedChannels)
-        
-        # Define the command and arguments separately (avoids shell=True vulnerabilities)
-        program = "docker"
-        arguments = ["compose","up", service, "-d"]
-
-        # Handle completion
-        def on_finished(exit_code, exit_status):
-            if exit_code == 0:
-                self.signals.log.emit(f"✅ Docker signal accepted for {service}.")
-                self.verify_socket_handshake()
-            else:
-                errors = self.process.readAllStandardOutput().data().decode().strip()
-                self.signals.log.emit(f"⚠️ Docker Warning: {errors}")
-
-        # Handle errors (e.g., binary not found)
-        def on_error(error):
-            self.signals.log.emit(f"❌ Failed to run boot command: {self.process.errorString()}")
-
-        # Connect signals
-        self.process.finished.connect(on_finished)
-        self.process.errorOccurred.connect(on_error)
-
-        # Start the process asynchronously
-        self.process.start(program, arguments)
-
-    def verify_socket_handshake(self):
-        port = int(self.config.get('port', 0))
-        if not port:
-            return
-        
-        self.signals.log.emit(f"🔍 Monitoring socket path availability at {VM_IP}:{port}...")
-        for attempt in range(1, 7): # Check 6 times with 5-second backoffs
-            time.sleep(5)
-            try:
-                with socket.create_connection((VM_IP, port), timeout=2):
-                    self.signals.log.emit(f"✨ Port {port} responded successfully. Database listener is alive.")
-                    return
-            except (socket.timeout, ConnectionRefusedError):
-                self.signals.log.emit(f"⏳ Port {port} refused connection. Engine is booting ({attempt}/6)...")
-        self.signals.log.emit(f"⚠️ Port {port} did not answer within the grace window. Operations might fail.")
 
     def commit_payload_direct(self):
         self.signals.log.emit(f"🚀 Initializing payload transmission block for {self.db_name}...")
@@ -264,10 +172,8 @@ class DatabaseTaskWorker(QRunnable):
     
     def execute_data_fetch(self):
         try:
-            # Universal default placeholder layout
             headers, rows = ["Attributes"], [["No active data structure layout initialized"]]
             
-            # --- PARSING: POSTGRESQL ---
             if self.db_name == "PostgreSQL":
                 import psycopg2
                 conn = psycopg2.connect(host=VM_IP, port=int(self.config['port']), database=self.config['db'], user=self.config['user'], password=self.config['pass'], connect_timeout=2)
@@ -276,7 +182,6 @@ class DatabaseTaskWorker(QRunnable):
                 rows, headers = [list(r) for r in cur.fetchall()], ["ID", "Timestamp", "Event"]
                 cur.close(); conn.close()
 
-            # --- PARSING: MYSQL ---
             elif self.db_name == "MySQL":
                 import pymysql
                 conn = pymysql.connect(host=VM_IP, port=int(self.config['port']), database=self.config['db'], user=self.config['user'], password=self.config['pass'], connect_timeout=2)
@@ -285,7 +190,6 @@ class DatabaseTaskWorker(QRunnable):
                 rows, headers = [list(r) for r in cur.fetchall()], ["ID", "Timestamp", "Event"]
                 cur.close(); conn.close()
 
-            # --- PARSING: MONGODB ---
             elif self.db_name == "MongoDB":
                 from pymongo import MongoClient
                 client = MongoClient(f"mongodb://{self.config['user']}:{self.config['pass']}@{VM_IP}:{self.config['port']}/", serverSelectionTimeoutMS=2000)
@@ -293,27 +197,23 @@ class DatabaseTaskWorker(QRunnable):
                 rows, headers = [[str(d.get('_id')), d.get('id', ''), d.get('event', '')] for d in cursor], ["BSON ID", "Business ID", "Event"]
                 client.close()
 
-            # --- PARSING: REDIS ---
             elif self.db_name == "Redis":
                 import redis
                 r = redis.Redis(host=VM_IP, port=int(self.config['port']), password=self.config['pass'], socket_timeout=2)
                 keys = r.keys("log:*")[:10]
                 rows, headers = [[k.decode('utf-8'), r.get(k).decode('utf-8')[:60]] for k in keys], ["Key Name", "Value Mapping Data"]
 
-            # --- PARSING: CLICKHOUSE ---
             elif self.db_name == "ClickHouse":
                 from clickhouse_driver import Client
                 client = Client(host=VM_IP, port=int(self.config['port']), connect_timeout=2)
                 rows, headers = client.execute('SELECT id, timestamp, event FROM events ORDER BY timestamp DESC LIMIT 10'), ["ID", "Timestamp", "Event"]
 
-            # --- PARSING: DUCKDB ---
             elif self.db_name == "DuckDB":
                 import duckdb
                 conn = duckdb.connect(self.config['db_file'])
                 rows, headers = conn.execute("SELECT id, timestamp, event FROM memory_events LIMIT 10;").fetchall(), ["ID", "Timestamp", "Event"]
                 conn.close()
 
-            # --- PARSING: SURREALDB ---
             elif self.db_name == "SurrealDB":
                 import requests
                 url = f"http://{VM_IP}:{self.config['port']}/sql"
@@ -327,17 +227,14 @@ class DatabaseTaskWorker(QRunnable):
                         rows = [[r.get('id', ''), r.get('timestamp', ''), r.get('event', '')] for r in records]
                         headers = ["Surreal ID", "Timestamp", "Event Type"]
 
-            # --- PARSING: MEILISEARCH ---
             elif self.db_name == "Meilisearch":
                 import meilisearch
                 client = meilisearch.Client(f"http://{VM_IP}:{self.config['port']}", self.config['pass'], timeout=2)
-                # Querying documents index directly with empty search parameter to fetch latest hits
                 result = client.index('logs').search('', {'limit': 10})
                 hits = result.get('hits', [])
                 rows = [[h.get('id', ''), h.get('timestamp', ''), h.get('event', '')] for h in hits]
                 headers = ["Meili Document ID", "Timestamp", "Indexed Event"]
 
-            # --- PARSING: NEO4J (GRAPH) ---
             elif self.db_name == "Neo4j":
                 from neo4j import GraphDatabase
                 with GraphDatabase.driver(f"bolt://{VM_IP}:{self.config['port']}", auth=(self.config['user'], self.config['pass']), connection_timeout=2) as driver:
@@ -346,11 +243,9 @@ class DatabaseTaskWorker(QRunnable):
                         rows = [[record["id"], record["ts"], record["type"]] for record in result]
                         headers = ["Graph Node ID", "Property: Timestamp", "Property: Type"]
 
-            # --- PARSING: QDRANT (VECTOR) ---
             elif self.db_name == "Qdrant":
                 from qdrant_client import QdrantClient
                 client = QdrantClient(host=VM_IP, port=int(self.config['port']), timeout=2)
-                # Pull raw points out from the collection space
                 points, _ = client.scroll(collection_name="events", limit=10, with_payload=True, with_vectors=False)
                 rows = []
                 for pt in points:
@@ -358,12 +253,10 @@ class DatabaseTaskWorker(QRunnable):
                     rows.append([str(pt.id), payload.get('id', ''), payload.get('event', '')])
                 headers = ["Vector Point ID", "Payload Business ID", "Payload Event"]
 
-            # Safely dispatch parsed results to your main UI thread
             self.signals.data_fetched.emit(headers, rows)
-
         except Exception as fetch_fault:
-            # Clean fallback to prevent the application execution loop from crashing
             self.signals.data_fetched.emit(["Storage Status"], [[f"Connection failed or schema uninitialized: {str(fetch_fault)}"]])
+
 
 # --- Primary Display Component Frame ---
 class MainWindow(QMainWindow):
@@ -503,16 +396,68 @@ class MainWindow(QMainWindow):
     def append_log(self, msg):
         self.console_output.append(f"[{datetime.now().strftime('%H:%M:%S')}] {msg}")
 
+    def boot_docker_node_ssh(self, selected_db, current_config):
+        """Asynchronously dispatches Remote Paramiko configuration tracking directory mapping variations."""
+        service = SERVICE_MAPPING.get(selected_db)
+        if not service:
+            self.append_log(f"ℹ️ {selected_db} operates as an in-process local framework. No Docker profile target required.")
+            return
+
+        self.append_log(f"🐳 Dispatching remote Paramiko SSH command for: [{service}]...")
+        
+        # Explicitly targets the config yml inside the specific path and marks the project directory for relative paths
+        remote_cmd = f"docker compose -f ~/db-stack/{COMPOSE_FILE} --project-directory ~/db-stack/ up {service} -d"
+
+        # Initialize background worker
+        self.ssh_worker = SSHDockerWorker(
+            host=VM_IP, 
+            username=SSH_USER, 
+            password=SSH_PASS, 
+            command=remote_cmd,
+            service=service
+        )
+
+        self.ssh_worker.signals.log.connect(self.append_log)
+        
+        def on_successful_boot():
+            self.verify_socket_handshake_local(current_config)
+            self.run_task("fetch_view")
+
+        self.ssh_worker.signals.finished.connect(on_successful_boot)
+        self.ssh_worker.finished.connect(self.ssh_worker.deleteLater)
+        
+        self.ssh_worker.start()
+
+    def verify_socket_handshake_local(self, config):
+        port = int(config.get('port', 0))
+        if not port:
+            return
+        
+        self.append_log(f"🔍 Monitoring socket path availability at {VM_IP}:{port}...")
+        for attempt in range(1, 7):
+            QThread.msleep(5000)
+            try:
+                with socket.create_connection((VM_IP, port), timeout=2):
+                    self.append_log(f"✨ Port {port} responded successfully. Database listener is alive.")
+                    return
+            except (socket.timeout, ConnectionRefusedError):
+                self.append_log(f"⏳ Port {port} refused connection. Engine is booting ({attempt}/6)...")
+        self.append_log(f"⚠️ Port {port} did not answer within the grace window. Operations might fail.")
+
     def run_task(self, action_type):
         selected_db = self.db_list.currentItem().text()
         config = {}
         for k, line_edit in self.input_fields_map[selected_db].items():
             config[k] = line_edit.text()
             
+        if action_type == "start_service":
+            self.boot_docker_node_ssh(selected_db, config)
+            return
+
         worker = DatabaseTaskWorker(action_type, selected_db, config, self.current_mock_data)
         worker.signals.log.connect(self.append_log)
         worker.signals.data_fetched.connect(self.populate_viewer_grid)
-        if action_type in ["start_service", "stream_payload"]:
+        if action_type == "stream_payload":
             worker.signals.finished.connect(lambda: self.run_task("fetch_view"))
             
         self.thread_pool.start(worker)
@@ -525,6 +470,7 @@ class MainWindow(QMainWindow):
         for r_idx, row in enumerate(rows):
             for c_idx, val in enumerate(row):
                 self.viewer_table.setItem(r_idx, c_idx, QTableWidgetItem(str(val)))
+
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)

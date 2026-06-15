@@ -48,4 +48,29 @@ In Linux and windows the below setup has to be done
 
 sudo apt install python3.10-venv python-is-python3
 
-pip install PySide6 psycopg2-binary pymysql pymongo redis meilisearch neo4j cassandra-driver qdrant-client clickhouse-driver pip install duckdb surrealdb objectbox
+pip install PySide6 psycopg2-binary pymysql pymongo redis meilisearch neo4j cassandra-driver qdrant-client clickhouse-driver pip install duckdb surrealdb objectbox docker paramiko
+
+## 4. Ensure the Docker compose is installed on windows
+
+New-Item -ItemType Directory -Force -Path "$HOME\.docker\cli-plugins"
+
+Invoke-WebRequest -Uri "https://github.com/docker/compose/releases/download/v2.33.1/docker-compose-windows-x86_64.exe" -OutFile "$HOME\.docker\cli-plugins\docker-compose.exe"
+
+## 5. Make sure the docker service in Ubuntu is updated as below
+
+[Service]
+ExecStart=
+ExecStart=/usr/bin/dockerd -H fd:// -H tcp://0.0.0.0:2375
+
+sudo systemctl daemon-reload
+sudo systemctl restart docker.service
+
+sudo ufw allow 2375/tcp
+sudo ufw reload
+
+### 5.1 Run this on your Windows Host Machine
+
+Test-NetConnection 192.168.31.180 -Port 2375
+
+## 6. Even After above only SSH to Docker host only will work
+

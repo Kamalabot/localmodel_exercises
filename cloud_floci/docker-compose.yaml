@@ -1,0 +1,71 @@
+services:
+  # ============================================================================
+  # 1. CORE MULTI-CLOUD ENGINES (UI is now served natively on these ports)
+  # ============================================================================
+  floci-aws:
+    image: floci/floci:latest
+    container_name: floci-aws
+    restart: unless-stopped
+    ports:
+      - "4566:4566"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./data/aws:/app/data
+    environment:
+      - AWS_DEFAULT_REGION=us-east-1
+      - DISABLE_CBOR=1
+      - DISABLE_AMAZON_JSON=1
+      - FLOCI_STORAGE_MODE=persistent
+
+  floci-gcp:
+    image: floci/floci-gcp:latest
+    container_name: floci-gcp
+    restart: unless-stopped
+    ports:
+      - "4588:4588"
+    volumes:
+      - ./data/gcp:/app/data
+
+  floci-az:
+    image: floci/floci-az:latest
+    container_name: floci-az
+    restart: unless-stopped
+    ports:
+      - "4577:4577"
+    volumes:
+      - ./data/az:/app/data
+
+  # ============================================================================
+  # 2. OFFLINE CACHE "PRE-FETCHER" SERVICES (Optional Heavy Runtimes)
+  # ============================================================================
+  cache-postgres:
+    image: postgres:16-alpine
+    profiles: ["offline-cache"]
+    
+  cache-mysql:
+    image: mysql:8.3
+    profiles: ["offline-cache"]
+
+  cache-mariadb:
+    image: mariadb:11
+    profiles: ["offline-cache"]
+
+  cache-redis:
+    image: redis:alpine
+    profiles: ["offline-cache"]
+
+  cache-k3s:
+    image: rancher/k3s:latest
+    profiles: ["offline-cache"]
+    
+  cache-kafka:
+    image: apache/kafka:latest
+    profiles: ["offline-cache"]
+
+  cache-lambda-python312:
+    image: public.ecr.aws/lambda/python:3.12
+    profiles: ["offline-cache"]
+
+  cache-lambda-node20:
+    image: public.ecr.aws/lambda/nodejs:20
+    profiles: ["offline-cache"]
