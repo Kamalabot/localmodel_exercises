@@ -1,0 +1,22 @@
+services:
+  pygodmode:
+    build: .
+    image: pygodmode:latest
+    container_name: pygodmode_container
+    ports:
+      - "8888:8888"
+    volumes:
+      - ./notebooks:/home/jovyan/work
+    user: root
+    environment:
+      - JUPYTER_TOKEN=godmode
+      - CHOWN_HOME=yes
+      - CHOWN_HOME_OPTS=-R
+    # Uncomment the lines below if you ever migrate to an NVIDIA GPU host
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: all
+    #           capabilities: [gpu]

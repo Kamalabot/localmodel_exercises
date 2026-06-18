@@ -1,0 +1,37 @@
+# PySide6 is actively developed, open-source (LGPLv3), and provides the core GUI framework.
+PySide6>=6.0.0
+
+# paramiko is actively developed and open-source (LGPLv2.1), used for remote SSH Docker node boots.
+paramiko>=3.0.0
+
+# requests is actively developed and open-source (Apache 2.0), utilized for SurrealDB HTTP REST fallback.
+requests>=2.25.0
+
+# --- Database Drivers (Optional or Required depending on your active target connection) ---
+
+# psycopg2 or psycopg2-binary is actively developed and open-source (LGPLv3+), used for PostgreSQL.
+psycopg2-binary>=2.9.0
+
+# pymysql is actively developed and open-source (MIT), used for MySQL.
+pymysql>=1.0.0
+
+# pymongo is actively developed and open-source (Apache 2.0), used for MongoDB.
+pymongo>=4.0.0
+
+# redis is actively developed and open-source (MIT), used for Redis in-memory storage.
+redis>=4.0.0
+
+# meilisearch is actively developed and open-source (MIT), used for Meilisearch document ingestion.
+meilisearch>=0.20.0
+
+# clickhouse-driver is actively developed and open-source (MIT), used for ClickHouse columns.
+clickhouse-driver>=0.2.0
+
+# duckdb is actively developed and open-source (MIT), used for local DuckDB file processing.
+duckdb>=0.8.0
+
+# neo4j is actively developed and open-source (Apache 2.0), used for Neo4j graph operations.
+neo4j>=5.0.0
+
+# qdrant-client is actively developed and open-source (Apache 2.0), used for Qdrant vector spaces.
+qdrant-client>=1.0.0
