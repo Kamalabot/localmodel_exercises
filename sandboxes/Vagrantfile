@@ -1,0 +1,48 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+# --- HARD CONTEXT CONFIGS ---
+MOTHERSHIP_IP = "192.168.56.109"
+K3S_TOKEN = "" 
+AGENT_COUNT = 3
+
+Vagrant.configure("2") do |config|
+  # Explicitly force the VirtualBox provider for box resolution
+  config.vm.provider "virtualbox"
+  
+  # Pull the pristine Debian 12 Master Image matching our provider
+  config.vm.box = "debian/bookworm64"
+
+  (1..AGENT_COUNT).each do |i|
+    config.vm.define "edge-agent-#{i}" do |node|
+      node.vm.hostname = "edge-agent-#{i}"
+      
+      # Attach directly to the Mothership's VirtualBox Network
+      node.vm.network "private_network", ip: "192.168.56.20#{i}"
+      
+      node.vm.provider "virtualbox" do |vb|
+        vb.name = "edge-agent-#{i}"
+        vb.memory = "1024"
+        vb.cpus = 2
+      end
+
+      # The Provisioning Payload
+      node.vm.provision "shell", inline: <<-SHELL
+        echo "Updating package index and installing curl..."
+        export DEBIAN_FRONTEND=noninteractive
+        sudo apt-get update -y >/dev/null
+        sudo apt-get install -y curl iptables iproute2 >/dev/null
+
+        echo "Stamping out K3s Agent..."
+        CURRENT_IP="192.168.56.20#{i}"
+        
+        # Install K3s but SKIP the automatic blocking startup
+        curl -sfL https://get.k3s.io | INSTALL_K3S_SKIP_START=true K3S_URL=https://#{MOTHERSHIP_IP}:6443 K3S_TOKEN=#{K3S_TOKEN} sh -s - --node-ip=$CURRENT_IP
+        
+        # Enable and start the daemon asynchronously so Vagrant immediately moves to the next node
+        sudo systemctl enable k3s-agent >/dev/null 2>&1
+        sudo systemctl start k3s-agent --no-block
+      SHELL
+    end
+  end
+end
