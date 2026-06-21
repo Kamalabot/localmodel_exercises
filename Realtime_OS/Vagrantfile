@@ -1,0 +1,85 @@
+Vagrant.configure("2") do |config|
+  # Bypass VirtualBox Guest Additions to prevent Ruby dependency crashes
+  if Vagrant.has_plugin?("vagrant-vbguest")
+    config.vbguest.auto_update = false
+  end
+
+  config.vm.box = "ubuntu/jammy64"
+  config.vm.network "forwarded_port", guest: 8080, host: 8080, host_ip: "127.0.0.1"
+
+  config.vm.provider "virtualbox" do |vb|
+    vb.name = "rtos-swarm-luos-sandbox"
+    vb.memory = "4096"
+    vb.cpus = 4
+  end
+
+  config.vm.provision "shell", inline: <<-SHELL
+    set -e
+    export DEBIAN_FRONTEND=noninteractive
+
+    echo "=== Updating System OS Package Indices ==="
+    apt-get update && apt-get upgrade -y
+
+    echo "=== Installing Essential Toolchain Tooling ==="
+    apt-get install -y --no-install-recommends \
+      git cmake ninja-build gperf ccache dfu-util device-tree-compiler wget \
+      python3-dev python3-pip python3-setuptools python3-tk python3-wheel xz-utils file \
+      make gcc gcc-multilib g++-multilib libsdl2-dev libmagic1 curl \
+      build-essential libncurses5-dev
+
+    echo "=== Installing Python Meta-Tools ==="
+    pip3 install west 
+    pip3 install pyluos --no-deps
+
+    su - vagrant -c "
+      mkdir -p /home/vagrant/rtos-workspace
+      cd /home/vagrant/rtos-workspace
+
+      echo '=== Instantiating Zephyr Workspace Modules (>200MB Flag) ==='
+      west init zephyrproject
+      cd zephyrproject
+      west update
+      west zephyr-export
+      pip3 install --upgrade pip setuptools wheel
+      pip3 install -r zephyr/scripts/requirements.txt
+
+      echo '=== Fetching FreeRTOS Source Tree (>200MB Flag) ==='
+      cd /home/vagrant/rtos-workspace
+      git clone --recurse-submodules https://github.com/FreeRTOS/FreeRTOS.git
+
+      echo '=== Fetching Luos C Engine and System Examples ==='
+      cd /home/vagrant/rtos-workspace
+      git clone https://github.com/Luos-io/luos_engine.git
+      git clone https://github.com/Luos-io/Examples.git
+
+      echo '=== Downloading and Installing Complete Zephyr SDK Toolchains (>1.5GB Flag) ==='
+      cd /home/vagrant
+      wget -q https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v0.16.5-1/zephyr-sdk-0.16.5-1_linux-x86_64.tar.xz
+      tar xvf zephyr-sdk-0.16.5-1_linux-x86_64.tar.xz
+      cd zephyr-sdk-0.16.5-1
+      
+      # -t all: Installs all architecture toolchains
+      # -h: Registers host tools
+      # -c: Registers the SDK directly to CMake
+      ./setup.sh -t all -h -c
+    "
+
+    echo "=== Suppressing Luos Local Anonymous Metrics ==="
+    echo "export CFLAGS='-DNOTELEMETRY \$CFLAGS'" >> /home/vagrant/.bashrc
+
+    echo "=== Installing Web-Based VS Code Server ==="
+    curl -fsSL https://code-server.dev/install.sh | sh
+
+    echo "=== Applying Unprotected Local Configuration Network Rules ==="
+    mkdir -p /home/vagrant/.config/code-server
+    cat <<EOF > /home/vagrant/.config/code-server/config.yaml
+bind-addr: 0.0.0.0:8080
+auth: none
+cert: false
+EOF
+    chown -R vagrant:vagrant /home/vagrant/.config
+
+    echo "=== Launching Background Server Daemon ==="
+    systemctl enable --now code-server@vagrant
+  SHELL
+end
