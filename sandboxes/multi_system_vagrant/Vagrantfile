@@ -1,0 +1,99 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+Vagrant.configure("2") do |config|
+
+  # =========================================================================
+  # 1. ALPINE NODE (Frontend Display Server - Optimized 128MB RAM)
+  # =========================================================================
+  # DISBALE THE BROKEN VBGUEST PLUGIN RUNTIME FOR THE ENTIRE CLUSTER
+  config.vbguest.auto_update = false
+  config.vm.define "frontend-alpine" do |alpine|
+    alpine.vm.box = "generic/alpine319"
+    alpine.vm.hostname = "frontend-alpine"
+    alpine.vm.network "private_network", ip: "192.168.56.40"
+    alpine.vm.network "forwarded_port", guest: 8800, host: 8040
+
+    # FORCE VAGRANT TO USE RSYNC FOR THIS NODE (Bypasses VirtualBox 7.2 broken shared folders)
+    alpine.vm.synced_folder ".", "/vagrant", type: "rsync"
+
+    alpine.vm.provider "virtualbox" do |vb|
+      vb.memory = 128
+      vb.cpus = 1
+    end
+
+    alpine.vm.provision "shell", inline: <<-SHELL
+      echo "Allocating 256MB emergency swap space for Alpine..."
+      dd if=/dev/zero of=/swapfile bs=1M count=256
+      chmod 0600 /swapfile
+      mkswap /swapfile
+      swapon /swapfile
+
+      echo "Installing Python environment..."
+      apk update
+      apk add python3
+
+      # Force execution from the freshly synced rsync location
+      # setsid completely detaches Python so it stays alive after provisioning exits
+      setsid python3 /vagrant/alpine_fontend.py > /var/log/alpine_app.log 2>&1 &
+      echo "Automation complete."
+      echo "Alpine Static Dashboard Initialized Safely over Rsync."
+    SHELL
+  end
+
+  # =========================================================================
+  # 2. DEBIAN NODE (Database Endpoint API - 256MB RAM)
+  # =========================================================================
+  config.vm.define "db-debian" do |debian|
+    # Swapped to Bento to resolve SSH authentication timeouts on official Debian boxes
+    debian.vm.box = "debian/bookworm64"
+    debian.vm.hostname = "db-debian"
+    debian.vm.network "private_network", ip: "192.168.56.50"
+
+    debian.vm.provider "virtualbox" do |vb|
+      vb.memory = 256
+      vb.cpus = 1
+    end
+
+    debian.vm.provision "shell", inline: <<-SHELL
+      mkdir -p /opt/db
+      apt-get update && apt-get install -y sqlite3 python3
+      # Note: debian_api.py MUST exist in the same host folder as this Vagrantfile
+      nohup python3 /vagrant/debian_api.py > /var/log/debian_app.log 2>&1 &
+      echo "Debian API Database Node Initialized."
+    SHELL
+  end
+
+  # =========================================================================
+  # 3. UBUNTU NODE (Worker Background Loop - Optimized Minimal Footprint)
+  # =========================================================================
+  config.vm.define "backend-ubuntu" do |ubuntu|
+    ubuntu.vm.box = "bento/ubuntu-22.04"
+    ubuntu.vm.hostname = "backend-ubuntu"
+    ubuntu.vm.network "private_network", ip: "192.168.56.60"
+
+    ubuntu.vm.provider "virtualbox" do |vb|
+      # Slightly increased to 768MB to guarantee stable APT package extraction
+      vb.memory = 768 
+      vb.cpus = 1
+    end
+
+    # Emergency Swap Allocation Script
+    ubuntu.vm.provision "shell", inline: <<-SHELL
+      echo "Allocating 1GB localized emergency Swap file..."
+      fallocate -l 1G /swapfile
+      chmod 600 /swapfile
+      mkswap /swapfile
+      swapon /swapfile
+      echo '/swapfile none swap sw 0 0' >> /etc/fstab
+      
+      echo "Beginning application environment provisioning..."
+      apt-get update && apt-get install -y python3
+      
+      # Note: ubuntu_worker.py MUST exist in the same host folder as this Vagrantfile
+      nohup python3 /vagrant/ubuntu_worker.py > /var/log/ubuntu_app.log 2>&1 &
+      echo "Ubuntu Daemon Pipeline Initialized Safely."
+    SHELL
+  end
+
+end
