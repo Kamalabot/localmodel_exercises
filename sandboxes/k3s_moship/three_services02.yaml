@@ -59,11 +59,27 @@ spec:
       labels:
         app: backend
     spec:
+      # THE DIRECT ROUTING FIX: Bypass CoreDNS completely for PyPI
+      hostAliases:
+      - ip: "151.101.0.223"
+        hostnames:
+        - "pypi.org"
+      - ip: "151.101.64.223"
+        hostnames:
+        - "files.pythonhosted.org"
       containers:
       - name: python-runner
         image: python:3.11-alpine
-        # Safely pull the Redis driver package onto the worker node before executing our mounted script
-        command: ["/bin/sh", "-c", "pip install redis > /dev/null 2>&1 && python /app/main.py"]
+        command:
+        - /bin/sh
+        - -c
+        - |
+          until pip install redis > /dev/null 2>&1; do 
+            echo 'Waiting for PyPI uplink and DNS stabilization...'
+            sleep 2
+          done
+          echo 'Dependencies secured. Booting Python interpreter.'
+          python -u /app/main.py
         ports:
         - containerPort: 8000
         volumeMounts:

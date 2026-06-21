@@ -12,3 +12,6 @@ kubectl create configmap nginx-proxy-config --from-file=default.conf -n edge-sta
 
 # 5. Bring up the physical decoupled cluster topology
 kubectl apply -f cluster-topology.yaml
+
+
+kubectl get pods -n edge-stack -o wide --watch

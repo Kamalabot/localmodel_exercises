@@ -3,13 +3,13 @@
 
 # --- HARD CONTEXT CONFIGS ---
 MOTHERSHIP_IP = "192.168.56.109"
-K3S_TOKEN = "" 
+K3S_TOKEN = "K10bbf286aab406cddbd1afc6fccabc96a0def2bd62524e37caad454782a3d7a2df::server:7bcd1f5a1edc076d30df3e3296ef7397" 
 AGENT_COUNT = 3
 
 Vagrant.configure("2") do |config|
   # Explicitly force the VirtualBox provider for box resolution
   config.vm.provider "virtualbox"
-  
+  config.vbguest.auto_update = false
   # Pull the pristine Debian 12 Master Image matching our provider
   config.vm.box = "debian/bookworm64"
 
@@ -28,6 +28,16 @@ Vagrant.configure("2") do |config|
 
       # The Provisioning Payload
       node.vm.provision "shell", inline: <<-SHELL
+        set -e
+        
+        echo "Allocating 1GB emergency memory swap shield..."
+        if [ ! -f /swapfile ]; then
+          fallocate -l 1G /swapfile || dd if=/dev/zero of=/swapfile bs=1M count=1024
+          chmod 600 /swapfile
+          mkswap /swapfile
+          swapon /swapfile
+          echo '/swapfile none swap sw 0 0' >> /etc/fstab
+        fi
         echo "Updating package index and installing curl..."
         export DEBIAN_FRONTEND=noninteractive
         sudo apt-get update -y >/dev/null
@@ -42,6 +52,7 @@ Vagrant.configure("2") do |config|
         # Enable and start the daemon asynchronously so Vagrant immediately moves to the next node
         sudo systemctl enable k3s-agent >/dev/null 2>&1
         sudo systemctl start k3s-agent --no-block
+        echo "Edge Agent #{i} provisioned successfully."
       SHELL
     end
   end

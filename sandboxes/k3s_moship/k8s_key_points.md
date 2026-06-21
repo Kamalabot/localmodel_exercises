@@ -30,3 +30,7 @@ You *could* technically force your Python backend and Nginx frontend to run insi
 You only combine multiple containers into a single pod when they are tightly coupled dependencies that **must live and die together**—such as a main application container paired with a "Sidecar" container (e.g., a local database log-shipper, a secure service-mesh proxy, or a local credential rotator).
 
 Since your frontend, backend, and database need to scale independently, K3s keeps them isolated on individual pods across your Vagrant fleet.
+
+kubectl delete node edge-agent
+
+kubectl -n kube-system delete secret edge-agent.node-password.k3s --ignore-not-found
