@@ -1,0 +1,17 @@
+# 1. Purge memory layouts
+Clear
+
+# 2. Re-create the logical container context
+mach create
+
+# 3. Load the structural silicon memory footprint description
+machine LoadPlatformDescription @platforms/cpus/nrf52840.repl
+
+# 4. Map your compiled executable binary absolute path image file
+sysbus LoadELF "/home/vagrant/rtos-workspace/zephyrproject/build/zephyr/zephyr.elf"
+
+# 5. FIX: Bridge the terminal input/output loops directly to the peripheral channel
+uart_connect sysbus.uart0
+
+# 6. Kick off execution
+start
