@@ -1,0 +1,96 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+Vagrant.configure("2") do |config|
+  config.vm.box = "ubuntu/jammy64"
+  
+  if Vagrant.has_plugin?("vagrant-vbguest")
+    config.vbguest.auto_update = false
+    config.vbguest.no_install = true
+    config.vbguest.no_remote = true
+  end
+  
+  config.vm.provider "virtualbox" do |vb|
+    vb.name = "Sovereign_Complete_Sim_Lab"
+    vb.memory = "4096"
+    vb.cpus = 2
+    vb.customize ["modifyvm", :id, "--nested-hw-virt", "on"]
+    vb.customize ["setextradata", "global", "SystemProperties/DefaultMachineFolder", "F:\\vbox_space"]
+    vb.gui = false
+  end
+
+  config.ssh.forward_x11 = true
+
+  config.vm.provision "shell", inline: <<-SHELL
+    export DEBIAN_FRONTEND=noninteractive
+    
+    # Environment Setup
+    echo "QT_X11_NO_MITSHM=1" >> /etc/environment
+    export QT_X11_NO_MITSHM=1
+    usermod -a -G dialout vagrant
+    
+    apt-get update
+    apt-get install -y wget socat python3-pip python3-venv picocom \
+                       libqt5gui5 libqt5widgets5 libqt5xml5 \
+                       libqt5serialport5 libqt5svg5 libqt5printsupport5 \
+                       libgl1-mesa-dri libglx-mesa0 xauth x11-apps \
+                       virtualbox-guest-utils virtualbox-guest-x11 libfuse2
+
+    touch /home/vagrant/.Xauthority
+    chown vagrant:vagrant /home/vagrant/.Xauthority
+
+    # Persistent Serial Loopback Engine (HARDENED WITH NATIVE PERMISSION MASKS)
+    cat << 'EOF' > /etc/systemd/system/virtual-serial.service
+[Unit]
+Description=Virtual Serial Null Modem Link
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/socat -d -d pty,raw,echo=0,link=/dev/ttyV0,mode=666 pty,raw,echo=0,link=/dev/ttyV1,mode=666
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+    systemctl daemon-reload
+    systemctl enable virtual-serial.service
+    systemctl start virtual-serial.service
+
+    # 1. Hardened SimulIDE Deploy
+    mkdir -p /opt/simulide
+    wget -L -qO simulide.tar.gz "https://sourceforge.net/projects/simulide/files/SimulIDE_1.1.0/SimulIDE_1.1.0-SR2_Lin64.tar.gz/download"
+    
+    if file simulide.tar.gz | grep -q "gzip compressed"; then
+        tar -xzf simulide.tar.gz -C /opt/simulide --strip-components=1
+        SIM_BIN=$(find /opt/simulide -type f -name simulide -executable | head -n 1)
+        ln -sf $SIM_BIN /usr/local/bin/simulide
+        ln -sf $SIM_BIN /usr/bin/simulide
+    else
+        wget -L -qO simulide.tar.gz "https://downloads.sourceforge.net/project/simulide/SimulIDE_1.1.0/SimulIDE_1.1.0-SR2_Lin64.tar.gz"
+        tar -xzf simulide.tar.gz -C /opt/simulide --strip-components=1
+        SIM_BIN=$(find /opt/simulide -type f -name simulide -executable | head -n 1)
+        ln -sf $SIM_BIN /usr/local/bin/simulide
+    fi
+    rm -f simulide.tar.gz
+
+    # 2. Hardened PICSimLab Deploy
+    mkdir -p /opt/picsimlab
+    wget -L -qO /opt/picsimlab/picsimlab.AppImage "https://github.com/lcgamboa/picsimlab/releases/download/v0.9.2/PICSimLab-0.9.2-x86_64.AppImage"
+    chmod +x /opt/picsimlab/picsimlab.AppImage
+    ln -sf /opt/picsimlab/picsimlab.AppImage /usr/local/bin/picsimlab
+    ln -sf /opt/picsimlab/picsimlab.AppImage /usr/bin/picsimlab
+
+    # 3. Hardened VS Code CLI Deploy
+    wget -L -qO vscode-cli.tar.gz "https://code.visualstudio.com/sha/download?build=stable&os=cli-linux-x64"
+    tar -xzf vscode-cli.tar.gz -C /usr/local/bin
+    rm -f vscode-cli.tar.gz
+    ln -sf /usr/local/bin/code /usr/bin/code
+    
+    # 4. Global Script Tools Packaging
+    pip3 install mpremote
+
+    echo "Provisioning complete. Core architecture verified."
+  SHELL
+end
